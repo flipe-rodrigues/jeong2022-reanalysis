@@ -1,3 +1,6 @@
 # jeong2022-comment
  
-### Jeong2022_preface is where all the model parameters are specified
+Matlab code for simulating experiments 1-5 from [Jeong et al. 2022](https://www.science.org/doi/10.1126/science.abq6740).
+
+### Jeong2022_preface.m
+- is where all the model parameters are specified
