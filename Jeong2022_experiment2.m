@@ -21,8 +21,8 @@ iti_mu = 60;
 iti_max = 190;
 
 %% simulation parameters
-n_trials_per_run = 50;
-n_runs = 9;
+n_trials_per_run = 100;
+n_runs = 8;
 n_trials = n_trials_per_run * n_runs;
 
 %% conditioned stimuli (CS)
