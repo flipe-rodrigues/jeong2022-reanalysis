@@ -8,7 +8,7 @@ etafun = @(dt,gamma) -dt/log(gamma);
 dt = .02;                               % state step size [s]
 eta = 200;                              % discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
-alpha = .01;                            % learning rate
+alpha = .02;                            % learning rate
 lambda = gammafun(.02,etafun(.2,.95));	% decay for eligibility traces
 tau = .95;                              % decay for the stimulus trace
 theta = .15;                            % std of temporal scaling
@@ -18,9 +18,9 @@ n = 50;                                 % number of microstimuli per stimulus
 
 % model parameters (high resolution version of Jeong & Namboodiri 2022)
 % dt = .02;                               % state step size [s]
-% eta = etafun(.2,.95);                   % discount time constant [s]
+% eta = etafun(.2,.98);                   % discount time constant [s]
 % gamma = gammafun(dt,eta);               % temporal discount factor
-% alpha = .05;                            % learning rate
+% alpha = .02;                            % learning rate
 % lambda = gammafun(.02,etafun(.2,.95));	% decay for eligibility traces
 % tau = .99;                              % decay for the stimulus trace
 % y0 = 1;                                 % starting height of the stimulus trace
@@ -40,9 +40,9 @@ n = 50;                                 % number of microstimuli per stimulus
 
 % model parameters (matched to Jeong & Namboodiri 2022)
 % dt = .2;                    % state step size [s]
-% gamma = .95;                % temporal discount factor
+% gamma = .98;                % temporal discount factor
 % eta = etafun(dt,gamma);     % discount time constant [s]
-% alpha = .05;                % learning rate
+% alpha = .02;                % learning rate
 % lambda = .95;               % decay for eligibility traces
 % tau = .99;                  % decay for the stimulus trace
 % y0 = 1;                     % starting height of the stimulus trace

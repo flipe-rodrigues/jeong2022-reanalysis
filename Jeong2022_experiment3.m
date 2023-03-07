@@ -1,9 +1,9 @@
-%% experiment V: classical conditioning - background rewards
+%% experiment III: classical conditioning - extended CS duration
 % description goes here
 
 %% initialization
-if ~exist('exp3_weights','var')
-    Jeong2022_experiment3;
+if ~exist('exp2_weights','var')
+    Jeong2022_experiment2;
 end
 
 %% used fixed random seed
@@ -11,7 +11,7 @@ rng(0);
 
 %% key assumptions
 use_clicks = 0;
-use_cs_offset = 1;
+use_cs_offset = 0;
 
 %% analysis parameters
 cs_period = [0,2];
@@ -19,7 +19,7 @@ baseline_period = [-1,0];
 
 %% experiment parameters
 pre_cs_delay = 1;
-cs_dur_set = 8;
+cs_dur_set = [2,8];
 n_cs_durs = numel(cs_dur_set);
 trace_dur = 1;
 iti_delay = 3;
@@ -31,27 +31,20 @@ n_trials = 500;
 trial_idcs = 1 : n_trials;
 
 %% conditioned stimuli (CS)
-cs_dur = repmat(cs_dur_set(1),n_trials,1);
+cs_dur_idcs = (trial_idcs > n_trials / 2) + 1;
+cs_dur = cs_dur_set(cs_dur_idcs)';
 cs_plus_proportion = .5;
 cs = categorical(rand(n_trials,1)<=cs_plus_proportion,[0,1],{'CS-','CS+'});
 cs_set = categories(cs);
 n_cs = numel(cs_set);
 cs_plus_flags = cs == 'CS+';
 
-%% time
-
-% trial time
+%% trial time
 trial_dur = pre_cs_delay + cs_dur + trace_dur + iti_delay;
 max_trial_dur = max(trial_dur) + iti_max;
 trial_time = (0 : dt : max_trial_dur - dt) - pre_cs_delay;
 n_states_per_trial = numel(trial_time);
 trial_state_edges = linspace(0,max_trial_dur,n_states_per_trial+1);
-
-% simulation time
-dur = sum(trial_dur + iti_max);
-time = 0 : dt : dur - dt;
-n_states = numel(time);
-state_edges = linspace(0,dur,n_states+1);
 
 %% inter-trial-intervals
 iti_pd = truncate(makedist('exponential','mu',iti_mu),0,iti_max);
@@ -64,6 +57,12 @@ itoi = trial_dur + iti;
 %% trial onset times
 trial_onset_times = cumsum(itoi);
 trial_onset_times = dt * round(trial_onset_times / dt);
+
+%% simulation time
+dur = trial_onset_times(end) + max_trial_dur;
+time = 0 : dt : dur - dt;
+n_states = numel(time);
+state_edges = linspace(0,dur,n_states+1);
 
 %% CS onset times
 cs_plus_onset_times = trial_onset_times(cs_plus_flags) + pre_cs_delay;
@@ -95,29 +94,6 @@ if ~use_clicks
     reaction_times = 0;
 end
 
-%% background reward times
-bg_iri_mu = 6;
-bg_cs_min_delay = 6;
-[~,bg_reward_times] = poissonprocess(1/bg_iri_mu,dur);
-bg_reward_times = unique(dt * round(bg_reward_times / dt));
-cs_onset_times = sort([cs_plus_onset_times;cs_minus_onset_times]);
-cs_offset_times = sort([cs_plus_offset_times;cs_minus_offset_times]);
-bg_reward_start_idx = floor(n_trials / 2) + 1;
-bg_reward_flags = ...
-    bg_reward_times >= cs_onset_times(bg_reward_start_idx) & ...
-    bg_reward_times <= cs_onset_times(end) + max_trial_dur;
-bg_reward_times(~bg_reward_flags) = nan;
-for ii = 1 : n_trials
-    violation_flags = ...
-        abs(bg_reward_times - cs_onset_times(ii)) < bg_cs_min_delay | ...
-        (bg_reward_times >= cs_onset_times(ii) & ...
-        bg_reward_times <= cs_offset_times(ii));
-    bg_reward_times(violation_flags) = nan;
-end
-bg_reward_times = bg_reward_times(~isnan(bg_reward_times));
-bg_reward_counts = histcounts(bg_reward_times,state_edges);
-n_bg_rewards = numel(bg_reward_times);
-
 %% reward times
 reward_times = click_times + reaction_times;
 reward_times = dt * round(reward_times / dt);
@@ -125,9 +101,6 @@ reward_counts = histcounts(reward_times,state_edges);
 [~,reward_state_idcs] = ...
     min(abs(time - reward_times(cs_plus_flags)),[],2);
 n_rewards = numel(reward_state_idcs);
-
-% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-reward_times = sort([reward_times;bg_reward_times]);
 
 %% microstimuli & eligibility traces
 
@@ -165,8 +138,8 @@ if use_cs_offset
 end
 
 %% TD learning
-[state,value,rpe,exp5_weights] = tdlambda(...
-    time,stimulus_times,reward_times,microstimuli,exp3_weights,...
+[state,value,rpe,exp3_weights] = tdlambda(...
+    time,stimulus_times,reward_times,microstimuli,exp2_weights,...
     'alpha',alpha,...
     'gamma',gamma,...
     'lambda',lambda);
@@ -178,6 +151,8 @@ da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
 %% get CS- & US-aligned snippets of DA signal
 [da_cs_snippets,da_cs_time] = signal2eventsnippets(...
     time,da,cs_plus_onset_times,cs_period,dt);
+[da_us_snippets,da_us_time] = signal2eventsnippets(...
+    time,da,cs_plus_onset_times,cs_period+cs_dur_set(1)+trace_dur,dt);
 [da_baseline_snippets,da_baseline_time] = signal2eventsnippets(...
     time,da,cs_plus_onset_times,baseline_period,dt);
 
@@ -185,11 +160,14 @@ da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
 
 % preallocation
 da_cs_response = nan(n_rewards,1);
+da_us_response = nan(n_rewards,1);
 
 % iterate through rewards
 for ii = 1 : n_rewards
     da_cs_response(ii) = ...
         sum(da_cs_snippets(ii,:)) - sum(da_baseline_snippets(ii,:));
+    da_us_response(ii) = ...
+        sum(da_us_snippets(ii,:)) - sum(da_baseline_snippets(ii,:));
 end
 
 %% reshape from trial-less time series to STATES x TRIALS matrices
@@ -199,7 +177,6 @@ stimulus_matrix = nan(n_states_per_trial,n_trials);
 value_matrix = nan(n_states_per_trial,n_trials);
 rpe_matrix = nan(n_states_per_trial,n_trials);
 da_matrix = nan(n_states_per_trial,n_trials);
-bg_reward_matrix = nan(n_states_per_trial,n_trials);
 
 % iterate through trials
 for ii = 1 : n_trials
@@ -221,19 +198,20 @@ for ii = 1 : n_trials
     value_matrix(1:n_idcs,ii) = value(idcs);
     rpe_matrix(1:n_idcs,ii) = rpe(idcs);
     da_matrix(1:n_idcs,ii) = da(idcs);
-    bg_reward_matrix(1:n_idcs,ii) = bg_reward_counts(idcs);
 end
 
-%% compute training stage indices ('pre' & 'post' omission)
-stage_divisor_idcs = floor([0,.5,1] * sum(cs_dur == cs_dur_set(1)));
+%% compute training stage indices ('early', 'middle' & 'late')
+n_substages = 3;
+stage_divisor_idcs = floor([0,1,1+(1:n_substages)./n_substages] * ...
+    sum(cs_dur == cs_dur_set(1)));
 n_stages = numel(stage_divisor_idcs) - 1;
-stage_clrs = [.7,.7,.7; .1,.25,.65];
+stage_clrs = [.7,.7,.7; colorlerp([.1,.25,.65; .5,.75,.85],n_substages)];
 
-%% figure 5: experiment V
+%% figure 3: experiment III
 
 % figure initialization
 figure(figopt,...
-    'name','experiment V: test 7');
+    'name','experiment III: tests 4 & 5');
 
 % axes initialization
 n_rows = 2 + 2;
@@ -242,7 +220,8 @@ sp_da_mu = subplot(n_rows,n_cols,1+n_cols*0);
 sp_da = subplot(n_rows,n_cols,1+n_cols*1);
 sp_value_mu = subplot(n_rows,n_cols,1+n_cols*2);
 sp_value = subplot(n_rows,n_cols,1+n_cols*3);
-sp_test7 = subplot(n_rows,n_cols,2+n_cols*[0,1]);
+sp_test4 = subplot(n_rows,n_cols,2+n_cols*[0,1]);
+sp_test5 = subplot(n_rows,n_cols,2+n_cols*[2,3]);
 
 % concatenate axes
 sps_stages = [...
@@ -250,7 +229,8 @@ sps_stages = [...
     sp_da;...
     sp_value_mu;...
     sp_value;...
-    sp_test7;...
+    sp_test4;...
+    sp_test5;...
     ];
 sps = [...
     sps_stages(:)',...
@@ -262,13 +242,17 @@ set(sps_stages,...
     'xlim',[-pre_cs_delay,max(trial_dur)+iti_delay]);
 set([sp_da,sp_value],...
     'colormap',parula(2^8));
-set(sp_test7,...
+set(sp_test4,...
     'xlim',[0,1],...
-    'ylim',[0,1],...
+    'ylim',[0,1]);
+set(sp_test5,...
+    'xlim',[1,n_rewards]);
+set([sp_test4,sp_test5],...
     'plotboxaspectratio',[1,1,1]);
 
 % axes titles
-title(sp_test7,'Test VII');
+title(sp_test4,'Test IV');
+title(sp_test5,'Test V');
 
 % axes labels
 arrayfun(@(ax)xlabel(ax,'Time (s)'),[sp_da_mu;sp_da;sp_value_mu;sp_value]);
@@ -276,8 +260,10 @@ ylabel(sp_da_mu,'DA (a.u.)');
 ylabel(sp_da,'Trial #');
 ylabel(sp_value_mu,'Value (a.u.)');
 ylabel(sp_value,'Trial #');
-xlabel(sp_test7,'Trial #');
-ylabel(sp_test7,'DA response at CS');
+xlabel(sp_test4,'Normalized trial');
+ylabel(sp_test4,'Normalized cumulative DA CS response');
+xlabel(sp_test5,'Trial #');
+ylabel(sp_test5,'DA response at original US time');
 
 % vertical offset for raster plots
 offset = 0;
@@ -325,19 +311,6 @@ for ii = 1 : n_stages
         'linewidth',1,...
         'linestyle','-');
     
-    % plot background rewards
-    bg_reward_trials = sum(bg_reward_times > trial_onset_times',2);
-    bg_reward_trial_times = bg_reward_times - trial_onset_times(bg_reward_trials);
-    bg_reward_flags = ismember(bg_reward_trials,find(trial_flags));
-    if ~isempty(bg_reward_trials)
-        plot(sp_da,...
-            bg_reward_trial_times(bg_reward_flags),bg_reward_trials(bg_reward_flags),...
-            'color','r',...
-            'marker','.',...
-            'markersize',10,...
-            'linestyle','none');
-    end
-    
     % compute & plot average DA conditioned on CS
     da_mu = nanmean(da_matrix(:,trial_flags),2);
     plot(sp_da_mu,trial_time,da_mu,...
@@ -356,29 +329,39 @@ end
 
 % legend
 legend(sp_da_mu,...
-    {'w/o background','w/ background'},...
+    {'2s CS+','8s CS+ (early)','8s CS+ (middle)','8s CS+ (late)'},...
     'location','northeast',...
     'box','off',...
     'autoupdate','off');
 
-% test 6: DA US responses as a function of trial number
-us_extinction_idx = find(omission_flags(cs_plus_flags),1);
-plot(sp_test7,...
+% test 4: DA CS responses as a function of trial number
+exp_start_idx = find(cs_dur_idcs(cs_plus_flags) == 2,1);
+plot(sp_test4,...
     (1:n_rewards)./n_rewards,cumsum(da_cs_response)/sum(da_cs_response),...
     'color','k',...
     'linewidth',1.5);
-plot(sp_test7,...
-    [1,1]*us_extinction_idx./n_rewards,ylim(sp_test7),'--k');
-plot(sp_test7,...
+plot(sp_test4,...
+    [1,1]*exp_start_idx./n_rewards,ylim(sp_test4),'--k');
+plot(sp_test4,...
     [0,1],[0,1],'--k');
-text(sp_test7,.25,.75,'decreases',...
+text(sp_test4,.25,.75,'decreases',...
     'color',[1,1,1]*.75,...
     'horizontalalignment','center',...
     'units','normalized');
-text(sp_test7,.75,.25,'increases',...
+text(sp_test4,.75,.25,'increases',...
     'color',[1,1,1]*.75,...
     'horizontalalignment','center',...
     'units','normalized');
+
+% test 5: DA US responses as a function of trial number
+plot(sp_test5,...
+    1:n_rewards,(da_us_response),...
+    'color','k',...
+    'linewidth',1.5);
+plot(sp_test5,...
+    [1,1]*exp_start_idx,ylim(sp_test5),'--k');
+plot(sp_test5,...
+    [0,n_rewards],[0,0],'--k');
 
 % plot CS onset
 plot(sp_da_mu,[0,0],ylim(sp_da_mu),...
