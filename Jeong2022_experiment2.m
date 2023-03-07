@@ -9,7 +9,7 @@ rng(0);
 
 %% key assumptions
 use_clicks = 0;
-use_cs_offset = 1;
+use_cs_offset = 0;
 
 %% experiment parameters
 pre_cs_delay = 1;
@@ -36,20 +36,12 @@ cs_plus_flags = cs == 'CS+';
 %% CS color settings
 cs_clrs = [.9,.1,.15;.05,.45,.75];
 
-%% time
-
-% trial time
+%% trial time
 trial_dur = pre_cs_delay + cs_dur + trace_dur + iti_delay;
 max_trial_dur = max(trial_dur) + iti_max;
 trial_time = (0 : dt : max_trial_dur - dt) - pre_cs_delay;
 n_states_per_trial = numel(trial_time);
 trial_state_edges = linspace(0,max_trial_dur,n_states_per_trial+1);
-
-% simulation time
-dur = sum(trial_dur + iti_max);
-time = 0 : dt : dur - dt;
-n_states = numel(time);
-state_edges = linspace(0,dur,n_states+1);
 
 %% inter-trial-intervals
 iti_pd = truncate(makedist('exponential','mu',iti_mu),0,iti_max);
@@ -62,6 +54,12 @@ itoi = trial_dur + iti;
 %% trial onset times
 trial_onset_times = cumsum(itoi);
 trial_onset_times = dt * round(trial_onset_times / dt);
+
+%% simulation time
+dur = trial_onset_times(end) + max_trial_dur;
+time = 0 : dt : dur - dt;
+n_states = numel(time);
+state_edges = linspace(0,dur,n_states+1);
 
 %% CS onset times
 cs_plus_onset_times = trial_onset_times(cs_plus_flags) + pre_cs_delay;

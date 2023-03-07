@@ -11,7 +11,7 @@ rng(0);
 
 %% key assumptions
 use_clicks = 0;
-use_cs_offset = 1;
+use_cs_offset = 0;
 
 %% analysis parameters
 cs_period = [0,2];
@@ -39,20 +39,12 @@ cs_set = categories(cs);
 n_cs = numel(cs_set);
 cs_plus_flags = cs == 'CS+';
 
-%% time
-
-% trial time
+%% trial time
 trial_dur = pre_cs_delay + cs_dur + trace_dur + iti_delay;
 max_trial_dur = max(trial_dur) + iti_max;
 trial_time = (0 : dt : max_trial_dur - dt) - pre_cs_delay;
 n_states_per_trial = numel(trial_time);
 trial_state_edges = linspace(0,max_trial_dur,n_states_per_trial+1);
-
-% simulation time
-dur = sum(trial_dur + iti_max);
-time = 0 : dt : dur - dt;
-n_states = numel(time);
-state_edges = linspace(0,dur,n_states+1);
 
 %% inter-trial-intervals
 iti_pd = truncate(makedist('exponential','mu',iti_mu),0,iti_max);
@@ -65,6 +57,12 @@ itoi = trial_dur + iti;
 %% trial onset times
 trial_onset_times = cumsum(itoi);
 trial_onset_times = dt * round(trial_onset_times / dt);
+
+%% simulation time
+dur = trial_onset_times(end) + max_trial_dur;
+time = 0 : dt : dur - dt;
+n_states = numel(time);
+state_edges = linspace(0,dur,n_states+1);
 
 %% CS onset times
 cs_plus_onset_times = trial_onset_times(cs_plus_flags) + pre_cs_delay;
@@ -337,13 +335,13 @@ legend(sp_da_mu,...
     'autoupdate','off');
 
 % test 4: DA CS responses as a function of trial number
-cs_dur_extension_idx = find(cs_dur_idcs(cs_plus_flags) == 2,1);
+exp_start_idx = find(cs_dur_idcs(cs_plus_flags) == 2,1);
 plot(sp_test4,...
     (1:n_rewards)./n_rewards,cumsum(da_cs_response)/sum(da_cs_response),...
     'color','k',...
     'linewidth',1.5);
 plot(sp_test4,...
-    [1,1]*cs_dur_extension_idx./n_rewards,ylim(sp_test4),'--k');
+    [1,1]*exp_start_idx./n_rewards,ylim(sp_test4),'--k');
 plot(sp_test4,...
     [0,1],[0,1],'--k');
 text(sp_test4,.25,.75,'decreases',...
@@ -361,7 +359,7 @@ plot(sp_test5,...
     'color','k',...
     'linewidth',1.5);
 plot(sp_test5,...
-    [1,1]*cs_dur_extension_idx,ylim(sp_test5),'--k');
+    [1,1]*exp_start_idx,ylim(sp_test5),'--k');
 plot(sp_test5,...
     [0,n_rewards],[0,0],'--k');
 
