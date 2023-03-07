@@ -95,7 +95,7 @@ if ~use_clicks
     reaction_times = 0;
 end
 
-%% reward times
+%% reward times (+extinction)
 reward_times = click_times + reaction_times;
 reward_times = dt * round(reward_times / dt);
 omission_flags = trial_idcs > n_trials / 2;
@@ -251,7 +251,7 @@ ylabel(sp_da,'Trial #');
 ylabel(sp_value_mu,'Value (a.u.)');
 ylabel(sp_value,'Trial #');
 xlabel(sp_test6,'Trial #');
-ylabel(sp_test6,'DA response at original US time');
+ylabel(sp_test6,'DA response at CS');
 
 % vertical offset for raster plots
 offset = 0;

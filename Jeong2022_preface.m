@@ -6,12 +6,12 @@ etafun = @(dt,gamma) -dt/log(gamma);
 
 % model parameters (partially inspired by Wei et al. 2022)
 dt = .02;                               % state step size [s]
-eta = 200;                              % discount time constant [s]
+eta = 50;                              % discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
 alpha = .01;                            % learning rate
 lambda = gammafun(.02,etafun(.2,.95));	% decay for eligibility traces
-tau = .95;                              % decay for the stimulus trace - mean
-theta = .05;                            % decay for the stimulus trace - std 
+tau = .95;                              % decay for the stimulus trace
+theta = .15;                            % std of temporal scaling
 y0 = 1;                                 % starting height of the stimulus trace
 sigma = .08;                            % width of each basis function
 n = 50;                                 % number of microstimuli per stimulus

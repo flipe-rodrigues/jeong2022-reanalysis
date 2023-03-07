@@ -12,6 +12,8 @@ function [x,value,rpe,w,eligibility] = tdlambda(...
     p.addParameter('gamma',.98);
     p.addParameter('alpha',.01);
     p.addParameter('lambda',.95);
+    p.addParameter('tau',.95);
+    p.addParameter('theta',0);
     p.parse(varargin{:});
     param = p.Results;
 
@@ -45,6 +47,14 @@ function [x,value,rpe,w,eligibility] = tdlambda(...
                 horizon = stimulus_state_idcs(jj+1) - stimulus_state_idcs(jj);
             end
             idcs = (1 : horizon) + stimulus_state_idcs(jj) - 1;
+%             temporal_scaling = max(0,normrnd(1,param.theta));
+%             unscaled_bases = temporal_bases;
+%             if horizon > 1
+%                 scaled_bases = interp1(...
+%                     time,unscaled_bases,time*temporal_scaling);
+%             else
+%                 scaled_bases = unscaled_bases;
+%             end
             stimulus_representation(idcs,:,ii) = temporal_bases(1:horizon,:);
         end
     end
