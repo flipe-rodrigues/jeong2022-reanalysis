@@ -21,8 +21,8 @@ iti_mu = 60;
 iti_max = 190;
 
 %% simulation parameters
-n_trials_per_run = 50;
-n_runs = 9;
+n_trials_per_run = 100;
+n_runs = 8;
 n_trials = n_trials_per_run * n_runs;
 
 %% conditioned stimuli (CS)
@@ -219,8 +219,6 @@ sps = [...
 set(sps,axesopt);
 set(sps_stages,...
     'xlim',[-pre_cs_delay,unique(trial_dur)+iti_delay]);
-set([sp_da,sp_value],...
-    'colormap',bone(2^8));
 
 % axes titles
 title(sp_da_mu(1),'Early in training');
