@@ -81,6 +81,7 @@ axesopt.clipping = 'on';
 axesopt.nextplot = 'add';
 axesopt.xlimspec = 'tight';
 axesopt.ylimspec = 'tight';
+axesopt.colormap = bone(2^8);
 
 %% color settings
 reward_clr = [.1,.5,.75];
