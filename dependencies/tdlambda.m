@@ -46,7 +46,7 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
         % iterate through stimuli
         for jj = 1 : stimulus_count
             progressreport(iteration,iteration_count,...
-                'constructing temporal features');
+                'constructing stimulus features');
             iteration = iteration + 1;
             if jj == stimulus_count
                 horizon = n_states - stimulus_state_idcs(jj);

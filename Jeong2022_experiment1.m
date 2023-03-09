@@ -8,7 +8,7 @@ Jeong2022_preface;
 rng(0);
 
 %% key assumptions
-use_clicks = 0;
+use_clicks = 1;
 
 %% analysis parameters
 iri_cutoff = 3;
