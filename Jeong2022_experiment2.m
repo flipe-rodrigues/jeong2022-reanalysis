@@ -67,15 +67,29 @@ cs_minus_onset_times = trial_onset_times(~cs_plus_flags) + pre_cs_delay;
 cs_plus_onset_counts = histcounts(cs_plus_onset_times,state_edges);
 cs_minus_onset_counts = histcounts(cs_minus_onset_times,state_edges);
 
-%%
-% cs_plus_onset_times = cs_plus_onset_times + linspace(0,1,5) .* cs_dur;
+%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+% cs_plus_onset_times = cs_plus_onset_times + ...
+%     linspace(0,1,2) .* cs_dur(cs_plus_flags);
 % cs_plus_onset_times = cs_plus_onset_times(:);
+% cs_plus_onset_times = unique(cs_plus_onset_times);
+% cs_minus_onset_times = cs_minus_onset_times + ...
+%     linspace(0,1,2) .* cs_dur(~cs_plus_flags);
+% cs_minus_onset_times = cs_minus_onset_times(:);
+% cs_minus_onset_times = unique(cs_minus_onset_times);
 
 %% CS offset times
 cs_plus_offset_times = cs_plus_onset_times + cs_dur(cs_plus_flags);
 cs_minus_offset_times = cs_minus_onset_times + cs_dur(~cs_plus_flags);
 cs_plus_offset_counts = histcounts(cs_plus_offset_times,state_edges);
 cs_minus_offset_counts = histcounts(cs_minus_offset_times,state_edges);
+
+%% !!!!!!!!!!!!!!!!!!!
+cs_plus_on_flags = sum(...
+    time >= cs_plus_onset_times & ...
+    time <= cs_plus_offset_times,1);
+cs_minus_on_flags = sum(...
+    time >= cs_minus_onset_times & ...
+    time <= cs_minus_offset_times,1);
 
 %% click times
 click_trial_times = nan(n_trials,1);
@@ -137,6 +151,11 @@ if use_cs_offset
         cs_plus_offset_times,...
         cs_minus_offset_times];
 end
+
+%% concatenate all state flags
+state_flags = [...
+    cs_plus_on_flags;...
+    cs_plus_on_flags];
 
 %% TD learning
 [state,value,rpe,exp2_weights] = tdlambda(...
@@ -281,7 +300,7 @@ linkaxes(sp_value_mu,'y');
 
 % iterate through runs
 for ii = 1 : n_runs
-
+    
     % plot CS onset
     plot(sp_da_mu(ii),[0,0],ylim(sp_da_mu(ii)),...
         'color','k',...
