@@ -9,9 +9,9 @@ dt = .02;                               % state step size [s]
 eta = 200;                              % discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
 alpha = .02;                            % learning rate
-lambda = gammafun(.02,etafun(.2,.5));	% decay for eligibility traces
+lambda = gammafun(.02,etafun(.2,.95));	% decay for eligibility traces
 tau = .95;                              % decay for the stimulus trace
-theta = .15;                            % std of temporal scaling
+theta = .15;                            % std of temporal scaling (NOT IN USE!!!)
 y0 = 1;                                 % starting height of the stimulus trace
 sigma = .08;                            % width of each basis function
 n = 50;                                 % number of microstimuli per stimulus
@@ -81,6 +81,7 @@ axesopt.clipping = 'on';
 axesopt.nextplot = 'add';
 axesopt.xlimspec = 'tight';
 axesopt.ylimspec = 'tight';
+axesopt.ticklength = [0.01,0.025];
 axesopt.colormap = bone(2^8);
 
 %% color settings

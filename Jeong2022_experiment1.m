@@ -70,6 +70,7 @@ iri_pdf = iri_pdf ./ nansum(iri_pdf);
 % microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
 mus = linspace(1,0,n);
+% mus = 1 - linspace(0,1,n) .^ 2;
 microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
@@ -100,8 +101,8 @@ if use_clicks
 end
 
 %% TD learning
-[state,value,rpe,exp1_weights,elig] = tdlambda(...
-    time,stimulus_times,reward_times,microstimuli,[],...
+[state,value,rpe,exp1_weights] = tdlambda(...
+    time,[],stimulus_times,reward_times,microstimuli,[],...
     'alpha',alpha,...
     'gamma',gamma,...
     'lambda',lambda,...
@@ -192,8 +193,6 @@ sps = [...
 
 % axes settings
 set(sps,axesopt);
-set(sp_state,...
-    'colormap',1-gray(2^8));
 set([sp_iri,sp_microstimulus,sp_eligibility],...
     'xlim',[0,40]);
 set(sp_reward,...
@@ -218,7 +217,7 @@ arrayfun(@(ax)xlabel(ax,'Time (s)'),sp_value);
 arrayfun(@(ax)ylabel(ax,'Value (a.u.)'),sp_value);
 xlabel(sp_iri,'IRI (s)');
 ylabel(sp_iri,'PDF');
-xlabel(sp_rt,'Reward time (s)');
+xlabel(sp_rt,'Time (s)');
 ylabel(sp_rt,'Reaction time (s)');
 xlabel(sp_microstimulus,'Time (s)');
 ylabel(sp_microstimulus,'Microstimulus (a.u.)');
@@ -250,7 +249,7 @@ for ii = 1 : n_stages
         'color',reward_clr,...
         'marker','none');
     
-    % plot state representation
+    % plot state features
     imagesc(sp_state(ii),time(idcs)+dt/2,[],state(idcs,:)');
     
     % plot RPE
