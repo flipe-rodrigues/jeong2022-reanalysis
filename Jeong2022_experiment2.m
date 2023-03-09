@@ -9,7 +9,7 @@ rng(0);
 
 %% key assumptions
 use_clicks = 0;
-use_cs_offset = 0;
+use_cs_offset = 1;
 
 %% experiment parameters
 pre_cs_delay = 1;
@@ -17,12 +17,12 @@ cs_dur_set = 2;
 n_cs_durs = numel(cs_dur_set);
 trace_dur = 1;
 iti_delay = 3;
-iti_mu = 60;
-iti_max = 190;
+iti_mu = 30;
+iti_max = 90;
 
 %% simulation parameters
 n_trials_per_run = 100;
-n_runs = 8;
+n_runs = 9;
 n_trials = n_trials_per_run * n_runs;
 
 %% conditioned stimuli (CS)
@@ -47,6 +47,12 @@ trial_state_edges = linspace(0,max_trial_dur,n_states_per_trial+1);
 iti_pd = truncate(makedist('exponential','mu',iti_mu),0,iti_max);
 iti = random(iti_pd,n_trials,1);
 iti = dt * round(iti / dt);
+n_bins = round(max(iti) / iti_mu) * 10;
+iti_edges = linspace(0,max(iti),n_bins);
+iti_counts = histcounts(iti,iti_edges);
+iti_counts = iti_counts ./ nansum(iti_counts);
+iti_pdf = pdf(iti_pd,iti_edges);
+iti_pdf = iti_pdf ./ nansum(iti_pdf);
 
 %% inter-trial-onset-intervals
 itoi = trial_dur + iti;
@@ -67,29 +73,19 @@ cs_minus_onset_times = trial_onset_times(~cs_plus_flags) + pre_cs_delay;
 cs_plus_onset_counts = histcounts(cs_plus_onset_times,state_edges);
 cs_minus_onset_counts = histcounts(cs_minus_onset_times,state_edges);
 
-%% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-% cs_plus_onset_times = cs_plus_onset_times + ...
-%     linspace(0,1,2) .* cs_dur(cs_plus_flags);
-% cs_plus_onset_times = cs_plus_onset_times(:);
-% cs_plus_onset_times = unique(cs_plus_onset_times);
-% cs_minus_onset_times = cs_minus_onset_times + ...
-%     linspace(0,1,2) .* cs_dur(~cs_plus_flags);
-% cs_minus_onset_times = cs_minus_onset_times(:);
-% cs_minus_onset_times = unique(cs_minus_onset_times);
-
 %% CS offset times
 cs_plus_offset_times = cs_plus_onset_times + cs_dur(cs_plus_flags);
 cs_minus_offset_times = cs_minus_onset_times + cs_dur(~cs_plus_flags);
 cs_plus_offset_counts = histcounts(cs_plus_offset_times,state_edges);
 cs_minus_offset_counts = histcounts(cs_minus_offset_times,state_edges);
 
-%% !!!!!!!!!!!!!!!!!!!
-cs_plus_on_flags = sum(...
+%% CS flags
+cs_plus_ison = sum(...
     time >= cs_plus_onset_times & ...
-    time <= cs_plus_offset_times,1);
-cs_minus_on_flags = sum(...
+    time <= cs_plus_offset_times,1)';
+cs_minus_ison = sum(...
     time >= cs_minus_onset_times & ...
-    time <= cs_minus_offset_times,1);
+    time <= cs_minus_offset_times,1)';
 
 %% click times
 click_trial_times = nan(n_trials,1);
@@ -122,6 +118,7 @@ n_rewards = numel(reward_state_idcs);
 % microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
 mus = linspace(1,0,n);
+% mus = 1 - linspace(0,1,n) .^ 2;
 microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
@@ -137,9 +134,9 @@ microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% concatenate all stimulus times
 stimulus_times = {...
+    reward_times,...
     cs_plus_onset_times,...
-    cs_minus_onset_times,...
-    reward_times};
+    cs_minus_onset_times};
 if use_clicks
     stimulus_times = [...
         stimulus_times,...
@@ -153,13 +150,13 @@ if use_cs_offset
 end
 
 %% concatenate all state flags
-state_flags = [...
-    cs_plus_on_flags;...
-    cs_plus_on_flags];
+cs_flags = [...
+    cs_plus_ison,...
+    cs_minus_ison];
 
 %% TD learning
 [state,value,rpe,exp2_weights] = tdlambda(...
-    time,stimulus_times,reward_times,microstimuli,[],...
+    time,[],stimulus_times,reward_times,microstimuli,[],...
     'alpha',alpha,...
     'gamma',gamma,...
     'lambda',lambda);
@@ -210,17 +207,20 @@ figure(figopt,...
     'name','experiment II: test 3');
 
 % axes initialization
-n_rows = 4;
+n_rows = 5;
 n_cols = n_runs;
+sp_cs = subplot(n_rows,n_cols,1);
+sp_state = subplot(n_rows,n_cols,2:n_cols-2);
+sp_iti = subplot(n_rows,n_cols,n_cols-1:n_cols);
 sp_da_mu = gobjects(1,n_runs);
 sp_da = gobjects(1,n_runs);
 sp_value_mu = gobjects(1,n_runs);
 sp_value = gobjects(1,n_runs);
 for ii = 1 : n_runs
-    sp_da_mu(ii) = subplot(n_rows,n_cols,ii+n_cols*0);
-    sp_da(ii) = subplot(n_rows,n_cols,ii+n_cols*1);
-    sp_value_mu(ii) = subplot(n_rows,n_cols,ii+n_cols*2);
-    sp_value(ii) = subplot(n_rows,n_cols,ii+n_cols*3);
+    sp_da_mu(ii) = subplot(n_rows,n_cols,ii+n_cols*1);
+    sp_da(ii) = subplot(n_rows,n_cols,ii+n_cols*2);
+    sp_value_mu(ii) = subplot(n_rows,n_cols,ii+n_cols*3);
+    sp_value(ii) = subplot(n_rows,n_cols,ii+n_cols*4);
 end
 
 % concatenate axes
@@ -231,6 +231,9 @@ sps_stages = [...
     sp_value;...
     ];
 sps = [...
+    sp_cs;...
+    sp_state;...
+    sp_iti;...
     sps_stages(:);...
     ];
 
@@ -238,16 +241,68 @@ sps = [...
 set(sps,axesopt);
 set(sps_stages,...
     'xlim',[-pre_cs_delay,unique(trial_dur)+iti_delay]);
+set(sp_cs,...
+    'xlim',[0,1]+[-1,1],...
+    'xtick',[0,1],...
+    'xticklabel',cs_set);
+set(sp_state,...
+    'ticklength',axesopt.ticklength/n_cols);
+set([sp_state,sp_iti],...
+    'ytick',[]);
 
 % axes titles
 title(sp_da_mu(1),'Early in training');
 title(sp_da_mu(end),'Late in training');
 
 % axes labels
+ylabel(sp_cs,'Count');
+xlabel(sp_state,'Time (s)');
+ylabel(sp_state,'State feature #');
+xlabel(sp_iti,'ITI (s)');
+ylabel(sp_iti,'PDF');
 arrayfun(@(ax)xlabel(ax,'Time (s)'),[sp_da_mu;sp_da]);
 arrayfun(@(ax)ylabel(ax,'DA (a.u.)'),[sp_da_mu;sp_da]);
 arrayfun(@(ax)xlabel(ax,'Time (s)'),[sp_value_mu;sp_value]);
 arrayfun(@(ax)ylabel(ax,'Value (a.u.)'),[sp_value_mu;sp_value]);
+
+% iterate through CS conditions
+for ii = 1 : n_cs
+    cs_flags = cs == cs_set{ii};
+    
+    % plot CS distribution
+    patch(sp_cs,...
+        (ii-1)+[-1,1,1,-1]*1/4,[0,0,1,1]*sum(cs_flags),cs_clrs(ii,:),...
+        'edgecolor',cs_clrs(ii,:),...
+        'linewidth',1.5,...
+        'facealpha',2/3);
+end
+
+% plot state features
+n_trials2plot = 15;
+time_flags = ...
+    time >= trial_onset_times(1) & ...
+    time < trial_onset_times(n_trials2plot + 1);
+imagesc(sp_state,...
+    time(time_flags)+dt/2,[],state(time_flags,:)');
+
+% plot ITI distribution
+stem(sp_iti,iti_mu,max([iti_counts,iti_pdf]),...
+    'color','k',...
+    'marker','v',...
+    'markersize',10,...
+    'markerfacecolor','k',...
+    'markeredgecolor','none',...
+    'linewidth',2);
+histogram(sp_iti,...
+    'binedges',iti_edges,...
+    'bincounts',iti_counts,...
+    'facecolor','w',...
+    'edgecolor','k',...
+    'facealpha',1,...
+    'linewidth',1);
+plot(sp_iti,iti_edges,iti_pdf,...
+    'color','k',...
+    'linewidth',2);
 
 % iterate through runs
 for ii = 1 : n_runs
@@ -275,6 +330,10 @@ for ii = 1 : n_runs
         plot(sp_da_mu(ii),trial_time,da_mu,...
             'color',cs_clrs(jj,:),...
             'linewidth',1);
+%         rpe_mu = nanmean(rpe_tensor(:,cs_flags,ii),2);
+%         plot(sp_da_mu(ii),trial_time,rpe_mu,...
+%             'color',cs_clrs(jj,:),...
+%             'linewidth',1);
         
         % compute & plot average value conditioned on CS
         value_mu = nanmean(value_tensor(:,cs_flags,ii),2);

@@ -1,5 +1,5 @@
 %% initialization
-close all;
+% close all;
 clear;
 clc;
 
