@@ -33,9 +33,6 @@ cs_set = categories(cs);
 n_cs = numel(cs_set);
 cs_plus_flags = cs == 'CS+';
 
-%% CS color settings
-cs_clrs = [.9,.1,.15;.05,.45,.75];
-
 %% trial time
 trial_dur = pre_cs_delay + cs_dur + trace_dur + iti_delay;
 max_trial_dur = max(trial_dur) + iti_max;
@@ -93,9 +90,7 @@ click_trial_times(cs_plus_flags) = pre_cs_delay + cs_dur(cs_plus_flags) + trace_
 click_times = click_trial_times + trial_onset_times;
 click_times = dt * round(click_times / dt);
 click_counts = histcounts(click_times,state_edges);
-[~,click_state_idcs] = ...
-    min(abs(time - click_times(cs_plus_flags)),[],2);
-n_clicks = numel(click_state_idcs);
+n_clicks = sum(click_counts);
 
 %% reaction times
 reaction_times = repmat(.5,n_trials,1);
@@ -109,9 +104,7 @@ end
 reward_times = click_times + reaction_times;
 reward_times = dt * round(reward_times / dt);
 reward_counts = histcounts(reward_times,state_edges);
-[~,reward_state_idcs] = ...
-    min(abs(time - reward_times(cs_plus_flags)),[],2);
-n_rewards = numel(reward_state_idcs);
+n_rewards = sum(reward_counts);
 
 %% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
@@ -206,7 +199,7 @@ figure(figopt,...
 % axes initialization
 n_rows = 5;
 n_cols = n_runs;
-sp_cs = subplot(n_rows,n_cols,1);
+sp_cstype = subplot(n_rows,n_cols,1);
 sp_state = subplot(n_rows,n_cols,2:n_cols-2);
 sp_iti = subplot(n_rows,n_cols,n_cols-1:n_cols);
 sp_da_mu = gobjects(1,n_runs);
@@ -228,7 +221,7 @@ sps_stages = [...
     sp_value;...
     ];
 sps = [...
-    sp_cs;...
+    sp_cstype;...
     sp_state;...
     sp_iti;...
     sps_stages(:);...
@@ -238,7 +231,7 @@ sps = [...
 set(sps,axesopt);
 set(sps_stages,...
     'xlim',[-pre_cs_delay,unique(trial_dur)+iti_delay]);
-set(sp_cs,...
+set(sp_cstype,...
     'xlim',[0,1]+[-1,1],...
     'xtick',[0,1],...
     'xticklabel',cs_set);
@@ -252,7 +245,7 @@ title(sp_da_mu(1),'Early in training');
 title(sp_da_mu(end),'Late in training');
 
 % axes labels
-ylabel(sp_cs,'Count');
+ylabel(sp_cstype,'Count');
 xlabel(sp_state,'Time (s)');
 ylabel(sp_state,'State feature #');
 xlabel(sp_iti,'ITI (s)');
@@ -267,7 +260,7 @@ for ii = 1 : n_cs
     cs_flags = cs == cs_set{ii};
     
     % plot CS distribution
-    patch(sp_cs,...
+    patch(sp_cstype,...
         (ii-1)+[-1,1,1,-1]*1/4,[0,0,1,1]*sum(cs_flags),cs_clrs(ii,:),...
         'edgecolor',cs_clrs(ii,:),...
         'linewidth',1.5,...
