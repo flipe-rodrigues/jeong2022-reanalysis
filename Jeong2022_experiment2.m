@@ -113,12 +113,9 @@ reward_counts = histcounts(reward_times,state_edges);
     min(abs(time - reward_times(cs_plus_flags)),[],2);
 n_rewards = numel(reward_state_idcs);
 
-%% microstimuli & eligibility traces
-
-% microstimuli
+%% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
 mus = linspace(1,0,n);
-% mus = 1 - linspace(0,1,n) .^ 2;
 microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
