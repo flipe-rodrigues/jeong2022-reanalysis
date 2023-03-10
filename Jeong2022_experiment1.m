@@ -58,12 +58,11 @@ reward_times = dt * round(reward_times / dt);
 reward_counts = histcounts(reward_times,state_edges);
 
 %% inter-reward-intervals
-iri = diff([0;reward_times]);
 n_bins = round(max(iri) / iri_mu) * 10;
 iri_edges = linspace(0,max(iri),n_bins);
 iri_counts = histcounts(iri,iri_edges);
 iri_counts = iri_counts ./ nansum(iri_counts);
-iri_pdf = exppdf(iri_edges,iri_mu);
+iri_pdf = pdf(iri_pd,iri_edges);
 iri_pdf = iri_pdf ./ nansum(iri_pdf);
 
 %% microstimuli
@@ -110,6 +109,7 @@ end
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+da = da / max(dlight_kernel.pdf);
 
 %% get reward-aligned snippets of DA signal
 [da_reward_snippets,da_reward_time] = ...
@@ -190,6 +190,7 @@ sps = [...
     ];
 
 % axes settings
+arrayfun(@(ax)set(ax.XAxis,'exponent',0),sps);
 set(sps,axesopt);
 set([sp_iri,sp_microstimulus,sp_eligibility],...
     'xlim',[0,40]);
@@ -256,7 +257,7 @@ for ii = 1 : n_stages
         'marker','none');
     
     % plot DA signal
-    plot(sp_rpe(ii),time(idcs),da(idcs)*10,...
+    plot(sp_rpe(ii),time(idcs),da(idcs),...
         'color',highlight_clr);
     
     % plot value trace
@@ -434,7 +435,6 @@ arrayfun(@(ax1,ax2,ax3,ax4)linkaxes([ax1,ax2,ax3,ax4],'x'),...
 linkaxes([sp_microstimulus,sp_eligibility],'x');
 linkaxes(sp_rpe,'y');
 linkaxes(sp_value,'y');
-linkaxes([sp_baseline,sp_reward],'y');
 linkaxes([sp_baseline,sp_reward],'y');
 
 % annotate model parameters

@@ -91,4 +91,4 @@ cs_minus_clr = [.9,.1,.15];
 cs_previous_clr = [0.2,0.3,0.3];
 cs_intermediate_clr = [1,.65,0];
 reward_clr = [.1,.5,.75];
-% highlight_clr = [.85,.05,.15];
+highlight_clr = [.85,.05,.15];
