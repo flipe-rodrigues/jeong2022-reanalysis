@@ -62,7 +62,9 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
 %             else
 %                 scaled_bases = unscaled_bases;
 %             end
-            stimulus_temporal_features(idcs,:,ii) = temporal_bases(1:horizon,:);
+            stimulus_temporal_features(idcs,:,ii) = ...
+                ...stimulus_temporal_features(idcs,:,ii) + ...
+                temporal_bases(1:horizon,:);
         end
     end
 
