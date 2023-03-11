@@ -19,7 +19,7 @@ baseline_period = [-2,-.5];
 iri_mu = 12;
 
 %% simulation parameters
-dur = 5e3;
+n_rewards = 500;
 
 %% training stage settings
 n_stages = 3;
@@ -28,21 +28,24 @@ early_clr = [0,0,0];
 late_clr = [1,1,1] * .85;
 stage_clrs = colorlerp([early_clr; late_clr],n_stages);
 
+%% inter-reward-intervals
+iri_pd = makedist('exponential','mu',iri_mu);
+iri = random(iri_pd,n_rewards,1);
+
 %% time
+dur = sum(iri) + max(iri);
 time = 0 : dt : dur - dt;
 n_states = numel(time);
 state_edges = linspace(0,dur,n_states+1);
 
 %% click times
-[~,click_times] = poissonprocess(1/iri_mu,dur);
+click_times = cumsum(iri);
 click_times = unique(dt * round(click_times / dt));
 click_counts = histcounts(click_times,state_edges);
-[~,click_state_idcs] = min(abs(time - click_times),[],2);
-n_clicks = numel(click_state_idcs);
 
 %% reaction times
-reaction_times = repmat(.5,n_clicks,1);
-reaction_times = linspace(1,.1,n_clicks)';
+reaction_times = repmat(.5,n_rewards,1);
+reaction_times = linspace(1,.1,n_rewards)';
 % reaction_times = normalize01(click_times .^ -dt) + .1;
 % reaction_times = normalize01(1 ./ (1 + .005 .* click_times)) + .1;
 % reaction_times = exprnd(.5,n_clicks,1);
@@ -53,24 +56,18 @@ reaction_times = max(reaction_times,dt*2);
 reward_times = click_times + reaction_times;
 reward_times = dt * round(reward_times / dt);
 reward_counts = histcounts(reward_times,state_edges);
-[~,reward_state_idcs] = min(abs(time - reward_times),[],2);
-n_rewards = numel(reward_state_idcs);
 
 %% inter-reward-intervals
-iri = diff([0;reward_times]);
 n_bins = round(max(iri) / iri_mu) * 10;
 iri_edges = linspace(0,max(iri),n_bins);
 iri_counts = histcounts(iri,iri_edges);
 iri_counts = iri_counts ./ nansum(iri_counts);
-iri_pdf = exppdf(iri_edges,iri_mu);
+iri_pdf = pdf(iri_pd,iri_edges);
 iri_pdf = iri_pdf ./ nansum(iri_pdf);
 
-%% microstimuli & eligibility traces
-
-% microstimuli
+%% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
 mus = linspace(1,0,n);
-% mus = 1 - linspace(0,1,n) .^ 2;
 microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
@@ -112,6 +109,7 @@ end
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+da = da / max(dlight_kernel.pdf);
 
 %% get reward-aligned snippets of DA signal
 [da_reward_snippets,da_reward_time] = ...
@@ -164,7 +162,7 @@ for ii = 1 : n_stages
     sp_value(ii) = subplot(n_rows,n_cols,ii+n_cols*3);
 end
 sp_iri = subplot(n_rows,n_cols,n_cols-1+n_cols*0);
-sp_rt = subplot(n_rows,n_cols,n_cols+n_cols*0);
+sp_reaction = subplot(n_rows,n_cols,n_cols+n_cols*0);
 sp_microstimulus = subplot(n_rows,n_cols,n_cols-1+n_cols*1);
 sp_eligibility = subplot(n_rows,n_cols,n_cols+n_cols*1);
 sp_baseline = subplot(n_rows,n_cols,n_cols-1+n_cols*2);
@@ -182,7 +180,7 @@ sp_stage = [...
 sps = [...
     sp_stage(:);...
     sp_iri;...
-    sp_rt;...
+    sp_reaction;...
     sp_microstimulus;...
     sp_eligibility;...
     sp_baseline;...
@@ -192,6 +190,7 @@ sps = [...
     ];
 
 % axes settings
+arrayfun(@(ax)set(ax.XAxis,'exponent',0),sps);
 set(sps,axesopt);
 set([sp_iri,sp_microstimulus,sp_eligibility],...
     'xlim',[0,40]);
@@ -217,8 +216,8 @@ arrayfun(@(ax)xlabel(ax,'Time (s)'),sp_value);
 arrayfun(@(ax)ylabel(ax,'Value (a.u.)'),sp_value);
 xlabel(sp_iri,'IRI (s)');
 ylabel(sp_iri,'PDF');
-xlabel(sp_rt,'Time (s)');
-ylabel(sp_rt,'Reaction time (s)');
+xlabel(sp_reaction,'Time (s)');
+ylabel(sp_reaction,'Reaction time (s)');
 xlabel(sp_microstimulus,'Time (s)');
 ylabel(sp_microstimulus,'Microstimulus (a.u.)');
 xlabel(sp_eligibility,'Time (s)');
@@ -258,7 +257,7 @@ for ii = 1 : n_stages
         'marker','none');
     
     % plot DA signal
-    plot(sp_rpe(ii),time(idcs),da(idcs)*10,...
+    plot(sp_rpe(ii),time(idcs),da(idcs),...
         'color',highlight_clr);
     
     % plot value trace
@@ -307,7 +306,7 @@ plot(sp_iri,iri_edges,iri_pdf,...
 
 % plot reaction times
 if use_clicks
-    plot(sp_rt,...
+    plot(sp_reaction,...
         reward_times,reaction_times,...
         'color','k',...
         'marker','.',...
@@ -436,7 +435,6 @@ arrayfun(@(ax1,ax2,ax3,ax4)linkaxes([ax1,ax2,ax3,ax4],'x'),...
 linkaxes([sp_microstimulus,sp_eligibility],'x');
 linkaxes(sp_rpe,'y');
 linkaxes(sp_value,'y');
-linkaxes([sp_baseline,sp_reward],'y');
 linkaxes([sp_baseline,sp_reward],'y');
 
 % annotate model parameters

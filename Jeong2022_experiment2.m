@@ -33,9 +33,6 @@ cs_set = categories(cs);
 n_cs = numel(cs_set);
 cs_plus_flags = cs == 'CS+';
 
-%% CS color settings
-cs_clrs = [.9,.1,.15;.05,.45,.75];
-
 %% trial time
 trial_dur = pre_cs_delay + cs_dur + trace_dur + iti_delay;
 max_trial_dur = max(trial_dur) + iti_max;
@@ -93,9 +90,7 @@ click_trial_times(cs_plus_flags) = pre_cs_delay + cs_dur(cs_plus_flags) + trace_
 click_times = click_trial_times + trial_onset_times;
 click_times = dt * round(click_times / dt);
 click_counts = histcounts(click_times,state_edges);
-[~,click_state_idcs] = ...
-    min(abs(time - click_times(cs_plus_flags)),[],2);
-n_clicks = numel(click_state_idcs);
+n_clicks = sum(click_counts);
 
 %% reaction times
 reaction_times = repmat(.5,n_trials,1);
@@ -109,16 +104,11 @@ end
 reward_times = click_times + reaction_times;
 reward_times = dt * round(reward_times / dt);
 reward_counts = histcounts(reward_times,state_edges);
-[~,reward_state_idcs] = ...
-    min(abs(time - reward_times(cs_plus_flags)),[],2);
-n_rewards = numel(reward_state_idcs);
+n_rewards = sum(reward_counts);
 
-%% microstimuli & eligibility traces
-
-% microstimuli
+%% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
 mus = linspace(1,0,n);
-% mus = 1 - linspace(0,1,n) .^ 2;
 microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
@@ -164,6 +154,7 @@ cs_flags = [...
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+da = da / max(dlight_kernel.pdf);
 
 %% reshape from trial-less time series to STATES x TRIALS x RUNS tensors
 
@@ -209,7 +200,7 @@ figure(figopt,...
 % axes initialization
 n_rows = 5;
 n_cols = n_runs;
-sp_cs = subplot(n_rows,n_cols,1);
+sp_cstype = subplot(n_rows,n_cols,1);
 sp_state = subplot(n_rows,n_cols,2:n_cols-2);
 sp_iti = subplot(n_rows,n_cols,n_cols-1:n_cols);
 sp_da_mu = gobjects(1,n_runs);
@@ -231,17 +222,18 @@ sps_stages = [...
     sp_value;...
     ];
 sps = [...
-    sp_cs;...
+    sp_cstype;...
     sp_state;...
     sp_iti;...
     sps_stages(:);...
     ];
 
 % axes settings
+arrayfun(@(ax)set(ax.XAxis,'exponent',0),sps);
 set(sps,axesopt);
 set(sps_stages,...
     'xlim',[-pre_cs_delay,unique(trial_dur)+iti_delay]);
-set(sp_cs,...
+set(sp_cstype,...
     'xlim',[0,1]+[-1,1],...
     'xtick',[0,1],...
     'xticklabel',cs_set);
@@ -255,7 +247,7 @@ title(sp_da_mu(1),'Early in training');
 title(sp_da_mu(end),'Late in training');
 
 % axes labels
-ylabel(sp_cs,'Count');
+ylabel(sp_cstype,'Count');
 xlabel(sp_state,'Time (s)');
 ylabel(sp_state,'State feature #');
 xlabel(sp_iti,'ITI (s)');
@@ -265,17 +257,17 @@ arrayfun(@(ax)ylabel(ax,'DA (a.u.)'),[sp_da_mu;sp_da]);
 arrayfun(@(ax)xlabel(ax,'Time (s)'),[sp_value_mu;sp_value]);
 arrayfun(@(ax)ylabel(ax,'Value (a.u.)'),[sp_value_mu;sp_value]);
 
-% iterate through CS conditions
-for ii = 1 : n_cs
-    cs_flags = cs == cs_set{ii};
-    
-    % plot CS distribution
-    patch(sp_cs,...
-        (ii-1)+[-1,1,1,-1]*1/4,[0,0,1,1]*sum(cs_flags),cs_clrs(ii,:),...
-        'edgecolor',cs_clrs(ii,:),...
-        'linewidth',1.5,...
-        'facealpha',2/3);
-end
+% plot CS distribution
+patch(sp_cstype,...
+    0+[-1,1,1,-1]*1/4,[0,0,1,1]*sum(~cs_plus_flags),cs_minus_clr,...
+    'edgecolor',cs_minus_clr,...
+    'linewidth',1.5,...
+    'facealpha',2/3);
+patch(sp_cstype,...
+    1+[-1,1,1,-1]*1/4,[0,0,1,1]*sum(cs_plus_flags),cs_plus_clr,...
+    'edgecolor',cs_plus_clr,...
+    'linewidth',1.5,...
+    'facealpha',2/3);
 
 % plot state features
 n_trials2plot = 15;
@@ -321,26 +313,29 @@ for ii = 1 : n_runs
         [trial_time(1),trial_time(end)],[],...
         value_tensor(:,sorted_idcs,ii)',clim);
     
-    % iterate through CS conditions
-    for jj = 1 : n_cs
-        cs_flags = cs(run_idcs) == cs_set{jj};
-        
-        % compute & plot average DA conditioned on CS
-        da_mu = nanmean(da_tensor(:,cs_flags,ii),2);
-        plot(sp_da_mu(ii),trial_time,da_mu,...
-            'color',cs_clrs(jj,:),...
-            'linewidth',1);
-%         rpe_mu = nanmean(rpe_tensor(:,cs_flags,ii),2);
-%         plot(sp_da_mu(ii),trial_time,rpe_mu,...
-%             'color',cs_clrs(jj,:),...
-%             'linewidth',1);
-        
-        % compute & plot average value conditioned on CS
-        value_mu = nanmean(value_tensor(:,cs_flags,ii),2);
-        plot(sp_value_mu(ii),trial_time,value_mu,...
-            'color',cs_clrs(jj,:),...
-            'linewidth',1);
-    end
+    % compute & plot average DA conditioned on CS
+    da_minus_mu = nanmean(da_tensor(:,~cs_plus_flags(run_idcs),ii),2);
+    plot(sp_da_mu(ii),trial_time,da_minus_mu,...
+        'color',cs_minus_clr,...
+        'linewidth',1);
+    da_plus_mu = nanmean(da_tensor(:,cs_plus_flags(run_idcs),ii),2);
+    plot(sp_da_mu(ii),trial_time,da_plus_mu,...
+        'color',cs_plus_clr,...
+        'linewidth',1);
+    %         rpe_mu = nanmean(rpe_tensor(:,cs_flags,ii),2);
+    %         plot(sp_da_mu(ii),trial_time,rpe_mu,...
+    %             'color',cs_clrs(jj,:),...
+    %             'linewidth',1);
+    
+    % compute & plot average value conditioned on CS
+    value_minus_mu = nanmean(value_tensor(:,~cs_plus_flags(run_idcs),ii),2);
+    plot(sp_value_mu(ii),trial_time,value_minus_mu,...
+        'color',cs_minus_clr,...
+        'linewidth',1);
+    value_plus_mu = nanmean(value_tensor(:,cs_plus_flags(run_idcs),ii),2);
+    plot(sp_value_mu(ii),trial_time,value_plus_mu,...
+        'color',cs_plus_clr,...
+        'linewidth',1);
 end
 
 % legend

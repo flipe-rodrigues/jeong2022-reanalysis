@@ -111,9 +111,7 @@ reward_counts = histcounts(reward_times,state_edges);
     min(abs(time - reward_times(cs_plus_flags)),[],2);
 n_rewards = numel(reward_state_idcs);
 
-%% microstimuli & eligibility traces
-
-% microstimuli
+%% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
 mus = linspace(1,0,n);
 microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
@@ -161,6 +159,7 @@ cs_flags = [...
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+da = da / max(dlight_kernel.pdf);
 
 %% get CS- & US-aligned snippets of DA signal
 [da_cs_snippets,da_cs_time] = signal2eventsnippets(...
@@ -242,6 +241,7 @@ sps = [...
     ];
 
 % axes settings
+arrayfun(@(ax)set(ax.XAxis,'exponent',0),sps);
 set(sps,axesopt);
 set(sps_stages,...
     'xlim',[-pre_cs_delay,max(trial_dur)+iti_delay]);

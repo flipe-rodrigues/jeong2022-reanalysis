@@ -6,7 +6,7 @@ etafun = @(dt,gamma) -dt/log(gamma);
 
 % model parameters (partially inspired by Wei et al. 2022)
 dt = .02;                               % state step size [s]
-eta = 200;                              % discount time constant [s]
+eta = 200;                            	% discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
 alpha = .02;                            % learning rate
 lambda = gammafun(.02,etafun(.2,.95));	% decay for eligibility traces
@@ -85,5 +85,10 @@ axesopt.ticklength = [0.01,0.025];
 axesopt.colormap = bone(2^8);
 
 %% color settings
+% clrs.cs.plus = [.05,.45,.75];
+cs_plus_clr = [.05,.45,.75];
+cs_minus_clr = [.9,.1,.15];
+cs_previous_clr = [0.2,0.3,0.3];
+cs_intermediate_clr = [1,.65,0];
 reward_clr = [.1,.5,.75];
 highlight_clr = [.85,.05,.15];
