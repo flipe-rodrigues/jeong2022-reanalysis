@@ -63,14 +63,14 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
 %                 scaled_bases = unscaled_bases;
 %             end
             stimulus_temporal_features(idcs,:,ii) = ...
-                ...stimulus_temporal_features(idcs,:,ii) + ...
+                ...1/2 * stimulus_temporal_features(idcs,:,ii) + ...
                 temporal_bases(1:horizon,:);
         end
     end
 
     % concatenate representations across stimuli
     state = reshape(stimulus_temporal_features,n_states,n_stimuli*n_bases);
-
+    
     %% concatenate stimulus & temporal features
     stimulus_features = ...
         normalize01(stimulus_features,1) * max(temporal_bases,[],'all');
