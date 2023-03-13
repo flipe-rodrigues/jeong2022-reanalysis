@@ -8,7 +8,7 @@ Jeong2022_preface;
 rng(0);
 
 %% key assumptions
-use_clicks = 1;
+use_clicks = 0;
 
 %% experiment parameters
 iri_mu = 12;
@@ -23,7 +23,7 @@ n_rewards = 500;
 
 %% training stage settings
 n_stages = 3;
-stage_dur = 60 * 2;
+stage_dur = 60;
 early_clr = [0,0,0];
 late_clr = [1,1,1] * .85;
 stage_clrs = colorlerp([early_clr; late_clr],n_stages);
@@ -40,7 +40,7 @@ state_edges = linspace(0,dur,n_states+1);
 
 %% click times
 click_times = cumsum(iri);
-click_times = unique(dt * round(click_times / dt));
+click_times = dt * round(click_times / dt);
 click_counts = histcounts(click_times,state_edges);
 
 %% reaction times
@@ -109,7 +109,9 @@ end
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
-da = da / max(dlight_kernel.pdf);
+
+% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+% da = rpe;
 
 %% get reward-aligned snippets of DA signal
 [da_reward_snippets,da_reward_time] = ...
@@ -192,6 +194,8 @@ sps = [...
 % axes settings
 arrayfun(@(ax)set(ax.XAxis,'exponent',0),sps);
 set(sps,axesopt);
+set(sp_stimulus,...
+    'ycolor','none');
 set([sp_iri,sp_microstimulus,sp_eligibility],...
     'xlim',[0,40]);
 set(sp_reward,...
@@ -239,14 +243,17 @@ for ii = 1 : n_stages
     % plot stimulus trace
     if use_clicks
         stem(sp_stimulus(ii),...
-            time(idcs),click_counts(idcs),...
+            click_times,ones(n_clicks,1),...
             'color','k',...
-            'marker','none');
+            'marker','none',...
+            'linewidth',1);
     end
     stem(sp_stimulus(ii),...
-        time(idcs),reward_counts(idcs),...
-        'color',reward_clr,...
-        'marker','none');
+        reward_times,ones(n_rewards,1),...
+        'color','k',...
+        'marker','.',...
+        'markersize',20,...
+        'linewidth',1);
     
     % plot state features
     imagesc(sp_state(ii),time(idcs)+dt/2,[],state(idcs,:)');
@@ -441,45 +448,45 @@ linkaxes([sp_baseline,sp_reward],'y');
 annotateModelParameters;
 
 %% extra stuff
-% [value_snippets,value_time] = ...
-%     signal2eventsnippets(time,value,reward_times,[-10,40],dt);
-% 
-% % figure initialization
-% figure(figopt,...
-%     'windowstyle','normal',...
-%     'name','reward-aligned value');
-% set(gca,axesopt,...
-%     'plotboxaspectratio',[2,1,1]);
-% 
-% % axes labels
-% xlabel('Time since reward (s)');
-% ylabel('Value (a.u.)');
-% 
-% % graphical object preallocation
-% p = gobjects(n_stages,1);
-% 
-% % iterate through training stages
-% for ii = 1 : n_stages
-%     idcs = (1 : floor(n_rewards/n_stages)) + ...
-%         (ii -1) * floor(n_rewards/n_stages);
-%     errorpatch(...
-%         value_time,...
-%         nanmean(value_snippets(idcs,:)),...
-%         nanstd(value_snippets(idcs,:))./sqrt(numel(idcs)),...
-%         stage_clrs(ii,:),...
-%         'facealpha',.25);
-%     p(ii) = plot(value_time,nanmean(value_snippets(idcs,:)),...
-%         'linewidth',1.5,...
-%         'color',stage_clrs(ii,:));
-% end
-% 
-% % alignemnt line
-% plot([0,0],ylim,'--k');
-% 
-% % legend
-% legend_labels = repmat({''},n_stages,1);
-% legend_labels{1} = 'Early';
-% legend_labels{end} = 'Late';
-% legend(p,legend_labels,...
-%     'location','northeast',...
-%     'box','off');
+[value_snippets,value_time] = ...
+    signal2eventsnippets(time,value,reward_times,[-10,40],dt);
+
+% figure initialization
+figure(figopt,...
+    'windowstyle','normal',...
+    'name','reward-aligned value');
+set(gca,axesopt,...
+    'plotboxaspectratio',[2,1,1]);
+
+% axes labels
+xlabel('Time since reward (s)');
+ylabel('Value (a.u.)');
+
+% graphical object preallocation
+p = gobjects(n_stages,1);
+
+% iterate through training stages
+for ii = 1 : n_stages
+    idcs = (1 : floor(n_rewards/n_stages)) + ...
+        (ii -1) * floor(n_rewards/n_stages);
+    errorpatch(...
+        value_time,...
+        nanmean(value_snippets(idcs,:)),...
+        nanstd(value_snippets(idcs,:))./sqrt(numel(idcs)),...
+        stage_clrs(ii,:),...
+        'facealpha',.25);
+    p(ii) = plot(value_time,nanmean(value_snippets(idcs,:)),...
+        'linewidth',1.5,...
+        'color',stage_clrs(ii,:));
+end
+
+% alignemnt line
+plot([0,0],ylim,'--k');
+
+% legend
+legend_labels = repmat({''},n_stages,1);
+legend_labels{1} = 'Early';
+legend_labels{end} = 'Late';
+legend(p,legend_labels,...
+    'location','northeast',...
+    'box','off');
