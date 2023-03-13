@@ -249,14 +249,6 @@ n_stages = numel(stage_divisor_idcs) - 1;
 stage_clrs = [.7,.7,.7; .1,.25,.65];
 
 %% compute reward rate
-
-% reward rate kernel settings
-% rwdrate_kernel = hypkernel(...
-%     'med',90,...
-%     'binwidth',dt);
-rwdrate_kernel = expkernel(...
-    'mus',120,...
-    'binwidth',dt);
 total_reward_counts = reward_counts + bg_reward_counts;
 rwdrate = conv(total_reward_counts/dt,rwdrate_kernel.pdf,'same');
 rwdrate = rwdrate * 60;
