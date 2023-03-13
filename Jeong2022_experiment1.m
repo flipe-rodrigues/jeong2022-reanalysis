@@ -10,13 +10,13 @@ rng(0);
 %% key assumptions
 use_clicks = 1;
 
-%% analysis parameters
-iri_cutoff = 3;
-reward_period = [-.5,1];
-baseline_period = [-2,-.5];
-
 %% experiment parameters
 iri_mu = 12;
+
+%% analysis parameters
+baseline_period = [-2,-.5];
+reward_period = [-.5,1];
+iri_cutoff = 3;
 
 %% simulation parameters
 n_rewards = 500;

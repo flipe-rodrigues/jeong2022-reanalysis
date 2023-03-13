@@ -6,7 +6,7 @@ etafun = @(dt,gamma) -dt/log(gamma);
 
 % model parameters (partially inspired by Wei et al. 2022)
 dt = .02;                               % state step size [s]
-eta = 200;                            	% discount time constant [s]
+eta = 2;                            	% discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
 alpha = .02;                            % learning rate
 lambda = gammafun(.02,etafun(.2,.95));	% decay for eligibility traces
