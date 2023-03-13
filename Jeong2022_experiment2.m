@@ -154,7 +154,6 @@ cs_flags = [...
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
-da = da / max(dlight_kernel.pdf);
 
 %% reshape from trial-less time series to STATES x TRIALS x RUNS tensors
 

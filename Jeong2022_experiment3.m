@@ -157,7 +157,6 @@ cs_flags = [...
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
-da = da / max(dlight_kernel.pdf);
 
 %% get CS- & US-aligned snippets of DA signal
 [da_baseline_snippets,da_baseline_time] = signal2eventsnippets(...
