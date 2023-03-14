@@ -85,7 +85,7 @@ microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
 % csc = zeros(n_states,n);
-% pulse_duration = .25;
+% pulse_duration = .5;
 % pulse_length = floor(pulse_duration / dt);
 % for ii = 1 : n
 %     idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
@@ -127,19 +127,20 @@ da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
 % da = rpe;
 
 %% get reward-aligned snippets of DA & value signals
-[da_reward_snippets,da_reward_time] = ...
-    signal2eventsnippets(time,da,reward_times,reward_period,dt);
 [da_baseline_snippets,da_baseline_time] = ...
     signal2eventsnippets(time,da,reward_times,baseline_period,dt);
+[da_reward_snippets,da_reward_time] = ...
+    signal2eventsnippets(time,da,reward_times,reward_period,dt);
 [value_snippets,value_time] = ...
     signal2eventsnippets(time,value,reward_times,[-10,40],dt);
 
 %% IRI-based reward selection
 reward_flags = ...
-    ...[iri(2:end);nan] >= iri_cutoff & ...
+    [iri(2:end);nan] >= iri_cutoff & ...
     iri >= iri_cutoff;
-da_reward_snippets(~reward_flags,:) = nan;
 da_baseline_snippets(~reward_flags,:) = nan;
+da_reward_snippets(~reward_flags,:) = nan;
+value_snippets(~reward_flags,:) = nan;
 
 %% compute 'DA response' metric
 

@@ -20,6 +20,11 @@ iti_delay = 3;
 iti_mu = 30;
 iti_max = 90;
 
+%% analysis parameters
+baseline_period = [-1,0];
+early_period = [0,1];
+late_period = [-1,0];
+
 %% simulation parameters
 n_trials_per_run = 100;
 n_runs = 9;
@@ -154,6 +159,14 @@ cs_flags = [...
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+
+%% get reward-aligned snippets of DA & value signals
+[da_baseline_snippets,da_baseline_time] = ...
+    signal2eventsnippets(time,da,cs_plus_onset_times,baseline_period,dt);
+[da_early_snippets,da_early_time] = ...
+    signal2eventsnippets(time,da,cs_plus_onset_times,early_period,dt);
+[da_late_snippets,da_late_time] = ...
+    signal2eventsnippets(time,da,reward_times(cs_plus_flags),late_period,dt);
 
 %% reshape from trial-less time series to STATES x TRIALS x RUNS tensors
 
