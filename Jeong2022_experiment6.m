@@ -74,7 +74,7 @@ if ~use_clicks
 end
 
 %% reward times
-reward_idcs = 1 : n_rewards;
+reward_idcs = (1 : n_rewards)'
 reward_times = click_times + reaction_times;
 reward_times = dt * round(reward_times / dt);
 
@@ -645,6 +645,7 @@ arrayfun(@(ax1,ax2,ax3,ax4)linkaxes([ax1,ax2,ax3,ax4],'x'),...
 linkaxes(sp_rpe,'y');
 linkaxes(sp_value,'y');
 linkaxes([sp_baseline,sp_cs,sp_us],'y');
+linkaxes([sp_test8_bslcorrected,sp_test8_cs,sp_test8_us],'y');
 
 % annotate model parameters
 annotateModelParameters;

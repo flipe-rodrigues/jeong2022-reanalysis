@@ -68,13 +68,13 @@ rwdrate_kernel = expkernel(...
     'mus',240,...
     'binwidth',dt);
 
-%% default figure settings
+%% figure settings
 figopt.color = 'w';
 figopt.numbertitle = 'off';
 figopt.windowstyle = 'docked';
 figopt.inverthardcopy = 'off';
 
-%% default axes settings
+%% axes settings
 axesopt = struct();
 axesopt.fontsize = 10;
 axesopt.linewidth = 2;
@@ -89,8 +89,20 @@ axesopt.clipping = 'on';
 axesopt.nextplot = 'add';
 axesopt.xlimspec = 'tight';
 axesopt.ylimspec = 'tight';
-axesopt.ticklength = [0.01,0.025];
 axesopt.colormap = bone(2^8);
+axesopt.fontname = 'helvetica';
+axesopt.ticklength = [0.01,0.025];
+
+%% colorbar settings
+colorbar.ticklength = axesopt.ticklength(2);
+colorbar.linewidth = axesopt.linewidth;
+colorbar.fontsize = axesopt.fontsize;
+colorbar.fontname = axesopt.fontname;
+colorbar.tickdir = 'out';
+colorbar.color = 'none';
+colorbar.xcolor = 'k';
+colorbar.ycolor = 'k';
+colorbar.box = 'off';
 
 %% color settings
 % clrs.cs.plus = [.05,.45,.75];
