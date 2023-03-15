@@ -1,9 +1,6 @@
 %% experiment I: unpredicted rewards
 % description goes here
 
-%% TODO:
-% turn off US bases at CS (try it?)
-
 %% initialization
 Jeong2022_preface;
 
