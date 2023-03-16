@@ -256,7 +256,7 @@ ylabel(sp_hazard,'Hazard');
 xlabel(sp_reaction,'Time (s)');
 ylabel(sp_reaction,'Reaction time (s)');
 xlabel(sp_microstimulus,'Time (s)');
-ylabel(sp_microstimulus,'Microstimulus (a.u.)');
+ylabel(sp_microstimulus,'Temporal basis (a.u.)');
 xlabel(sp_stimulustrace,'Time (s)');
 ylabel(sp_stimulustrace,'Stimulus trace (a.u.)');
 xlabel(sp_eligibility,'Time (s)');

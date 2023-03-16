@@ -9,7 +9,7 @@ dt = .02;                               % state step size [s]
 eta = 200;                            	% discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
 alpha = .02;                            % learning rate
-lambda = .95; % gammafun(.02,etafun(.2,.95));	% decay for eligibility traces
+lambda = gammafun(.02,etafun(.2,.95));	% decay for eligibility traces
 tau = .95;                              % decay for the stimulus trace
 theta = .15;                            % std of temporal scaling (NOT IN USE!!!)
 y0 = 1;                                 % starting height of the stimulus trace
@@ -68,13 +68,13 @@ rwdrate_kernel = expkernel(...
     'mus',240,...
     'binwidth',dt);
 
-%% default figure settings
+%% figure settings
 figopt.color = 'w';
 figopt.numbertitle = 'off';
 figopt.windowstyle = 'docked';
 figopt.inverthardcopy = 'off';
 
-%% default axes settings
+%% axes settings
 axesopt = struct();
 axesopt.fontsize = 10;
 axesopt.linewidth = 2;
@@ -89,8 +89,20 @@ axesopt.clipping = 'on';
 axesopt.nextplot = 'add';
 axesopt.xlimspec = 'tight';
 axesopt.ylimspec = 'tight';
-axesopt.ticklength = [0.01,0.025];
 axesopt.colormap = bone(2^8);
+axesopt.fontname = 'helvetica';
+axesopt.ticklength = [0.01,0.025];
+
+%% colorbar settings
+colorbar.ticklength = axesopt.ticklength(2);
+colorbar.linewidth = axesopt.linewidth;
+colorbar.fontsize = axesopt.fontsize;
+colorbar.fontname = axesopt.fontname;
+colorbar.tickdir = 'out';
+colorbar.color = 'none';
+colorbar.xcolor = 'k';
+colorbar.ycolor = 'k';
+colorbar.box = 'off';
 
 %% color settings
 % clrs.cs.plus = [.05,.45,.75];
@@ -99,4 +111,5 @@ cs_minus_clr = [.9,.1,.15];
 cs_previous_clr = [0.2,0.3,0.3];
 cs_intermediate_clr = [1,.65,0];
 reward_clr = [.1,.5,.75];
-highlight_clr = [.85,.05,.15];
+% highlight_clr = [.85,.05,.15];
+highlight_clr = [1,.65,0];
