@@ -327,7 +327,7 @@ ylabel(sp_value_mu,'Value (a.u.)');
 ylabel(sp_value,'Trial #');
 xlabel(sp_test7,'Normalized trial');
 ylabel(sp_test7,'Normalized cumulative DA response at CS');
-xlabel(sp_test5,'Trials since CS extension');
+xlabel(sp_test5,'Trials relative to introduction of background rewards');
 ylabel(sp_test5,'Cummulative DA response at US');
 
 % plot state features

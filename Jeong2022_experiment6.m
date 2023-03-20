@@ -300,11 +300,11 @@ xlabel(sp_csresponse,'Reward #');
 ylabel(sp_csresponse,'DA CS response (a.u.)');
 xlabel(sp_usresponse,'Reward #');
 ylabel(sp_usresponse,'DA US response (a.u.)');
-xlabel(sp_baseline,'Time since CS (s)');
+xlabel(sp_baseline,'Time relative to CS onset (s)');
 ylabel(sp_baseline,'DA (a.u.)');
-xlabel(sp_cs,'Time since CS (s)');
+xlabel(sp_cs,'Time relative to CS onset (s)');
 ylabel(sp_cs,'DA (a.u.)');
-xlabel(sp_us,'Time since US (s)');
+xlabel(sp_us,'Time relative to US (s)');
 ylabel(sp_us,'DA (a.u.)');
 ylabel(sp_test8_bslcorrected,...
     {'Ratio of baseline-corrected','CS response (interm. / prev.)'});
