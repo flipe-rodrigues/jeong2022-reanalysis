@@ -24,12 +24,12 @@ axesopt.fontname = 'helvetica';
 axesopt.ticklength = [0.01,0.025];
 
 %% colorbar settings
-colorbar.ticklength = axesopt.ticklength(2);
-colorbar.linewidth = axesopt.linewidth;
-colorbar.fontsize = axesopt.fontsize;
-colorbar.fontname = axesopt.fontname;
-colorbar.tickdir = 'out';
-colorbar.color = 'none';
-colorbar.xcolor = 'k';
-colorbar.ycolor = 'k';
-colorbar.box = 'off';
+clrbaropt.ticklength = axesopt.ticklength(2);
+clrbaropt.linewidth = axesopt.linewidth;
+clrbaropt.fontsize = axesopt.fontsize;
+clrbaropt.fontname = axesopt.fontname;
+clrbaropt.tickdir = 'out';
+clrbaropt.color = 'none';
+clrbaropt.xcolor = 'k';
+clrbaropt.ycolor = 'k';
+clrbaropt.box = 'off';

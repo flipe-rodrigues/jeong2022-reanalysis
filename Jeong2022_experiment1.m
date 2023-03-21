@@ -93,9 +93,11 @@ end
 kernel.weber.pdfs = kernel.weber.pdfs ./ nansum(kernel.weber.pdfs,2);
 
 % smear percept distros with scalar kernel
-iri_hzd_subjective = iri_hzd * kernel.weber.pdfs';
-% iri_hzd_subjective = iri_hzd_subjective ./ iri_hzd_subjective(end);
-iri_hzd_subjective = iri_hzd_subjective ./ sum(iri_hzd_subjective);
+iri_pdf_subjective = iri_pdf * kernel.weber.pdfs';
+iri_pdf_subjective = iri_pdf_subjective / nansum(iri_pdf_subjective);
+iri_cdf_subjective = cumsum(iri_pdf_subjective);
+iri_survival_subjective = 1 - [0, iri_cdf_subjective(1:end-1)];
+iri_hzd_subjective = round(iri_pdf_subjective ./ iri_survival_subjective,4);
 
 %% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
@@ -589,10 +591,17 @@ tail(mdp_dynamics)
 whos mdp_dynamics
 
 %% policy evaluation
+figure(figopt,...
+    'windowstyle','normal');
+axes(axesopt,...
+    'colormap',winter(2^8));
+xlabel('Time (s)');
+ylabel('Value (a.u.)');
 
 % preallocation
 value_function = zeros(1,iri_n_bins);
 
+iter = 1;
 theta = 1e-6;
 delta = inf;
 while delta > theta
@@ -631,8 +640,32 @@ while delta > theta
     
     % progress report
     fprintf('delta = %.2e\n',delta);
+    iter = iter + 1;
+    if mod(iter,10) == 0
+        plot(iri_edges,value_function,...
+            'linewidth',1);
+        set(gca,...
+            'colororder',winter(iter/10));
+        drawnow;
+    end
 end
 
-figure; plot(iri_edges,value_function);
-xlabel('Time (s)');
-ylabel('Value (a.u.)');
+% annotate gamma
+text(.05,1,sprintf('\\gamma = %.3f',gamma),...
+    'units','normalized');
+text(.05,.975,sprintf('\\eta = %.3f s',etafun(dt,gamma)),...
+    'units','normalized');
+
+% color bar
+clrbar = colorbar;
+clrlabel.string = 'estimation stage';
+clrlabel.fontsize = axesopt.fontsize * 1.1;
+clrlabel.rotation = 270;
+set(clrbar,...
+    clrbaropt,...
+    'ticks',[0,1],...
+    'ticklabels',{'early on','later'},...
+    'ticklength',.005,...
+    'fontsize',axesopt.fontsize);
+set(clrbar.Label,...
+    clrlabel);
