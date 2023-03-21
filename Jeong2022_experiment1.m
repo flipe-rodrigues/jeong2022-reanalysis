@@ -60,8 +60,8 @@ reward_times = dt * round(reward_times / dt);
 reward_counts = histcounts(reward_times,state_edges);
 
 %% inter-reward-intervals
-n_bins = round(max(iri) / iri_mu) * 10;
-iri_edges = linspace(0,max(iri),n_bins);
+iri_n_bins = round(max(iri) / iri_mu) * 10;
+iri_edges = linspace(0,max(iri),iri_n_bins);
 iri_counts = histcounts(iri,iri_edges);
 iri_pmf = iri_counts ./ nansum(iri_counts);
 iri_pdf = pdf(iri_pd,iri_edges);
@@ -70,10 +70,32 @@ iri_pdf = iri_pdf ./ nansum(iri_pdf);
 %% IRI hazard rate
 iri_cdf = cumsum(iri_pdf);
 iri_survival = 1 - [0, iri_cdf(1:end-1)];
-iri_hzd = iri_pdf ./ iri_survival;
+iri_hzd = round(iri_pdf ./ iri_survival,4);
 iri_cdf_empirical = cumsum(iri_pmf);
 iri_survival_empirical = 1 - [0, iri_cdf_empirical(1:end-1)];
 iri_hzd_empirical = iri_pmf ./ iri_survival_empirical;
+
+%% IRI subjective hazard rate
+webber_fraction = .15;
+sig0 = .05;
+
+% define gaussian kernel to introduce scalar timing
+kernel.weber.win = iri_edges;
+kernel.weber.mus = kernel.weber.win';
+kernel.weber.sigs = kernel.weber.mus * webber_fraction;
+kernel.weber.pdfs = normpdf(kernel.weber.win,kernel.weber.mus,kernel.weber.sigs);
+I = eye(iri_n_bins);
+for jj = 1 : iri_n_bins
+    if all(isnan(kernel.weber.pdfs(jj,:)))
+        kernel.weber.pdfs(jj,:) = I(jj,:);
+    end
+end
+kernel.weber.pdfs = kernel.weber.pdfs ./ nansum(kernel.weber.pdfs,2);
+
+% smear percept distros with scalar kernel
+iri_hzd_subjective = iri_hzd * kernel.weber.pdfs';
+% iri_hzd_subjective = iri_hzd_subjective ./ iri_hzd_subjective(end);
+iri_hzd_subjective = iri_hzd_subjective ./ sum(iri_hzd_subjective);
 
 %% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
@@ -119,9 +141,6 @@ end
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
-
-% !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-% da = rpe;
 
 %% get reward-aligned snippets of DA & value signals
 [da_baseline_snippets,da_baseline_time] = ...
@@ -391,6 +410,10 @@ plot(sp_hazard,iri_edges,iri_hzd,...
     'color','k',...
     'linestyle','-',...
     'linewidth',2);
+plot(sp_hazard,iri_edges,iri_hzd_subjective,...
+    'color','k',...
+    'linestyle','--',...
+    'linewidth',2);
 
 % plot reaction times
 if use_clicks
@@ -546,3 +569,70 @@ linkaxes([sp_baseline,sp_reward],'y');
 
 % annotate model parameters
 annotateModelParameters;
+return;
+
+%% dynamic programming approach
+s = sort([1:iri_n_bins,1:iri_n_bins]);
+r = repmat([0,1],1,iri_n_bins);
+sp = s + 1;
+sp(r == 1) = iri_n_bins;
+sp(end) = 1;
+p = 1 - sort([iri_hzd,iri_hzd]);
+p(r == 1) = iri_hzd;
+p(s == iri_n_bins - 1 & sp == iri_n_bins) = 1;
+r(end) = 0;
+mdp_dynamics = table(sp',r',s',p',...
+    'variablenames',{'s''','r','s','p(s'',r | s)'});
+mdp_dynamics = mdp_dynamics(sp <= iri_n_bins & r == (sp == iri_n_bins),:);
+head(mdp_dynamics)
+tail(mdp_dynamics)
+whos mdp_dynamics
+
+%% policy evaluation
+
+% preallocation
+value_function = zeros(1,iri_n_bins);
+
+theta = 1e-6;
+delta = inf;
+while delta > theta
+    delta = 0;
+    
+    % iterate through states
+    for ss = 1 : iri_n_bins
+        temp = value_function(ss);
+        Vs = 0;
+        
+        % iterate through subsequent states
+        for sp = 1 : iri_n_bins
+            
+            % iterate through rewards
+            for rwd = [0,1]
+                idx = find(...
+                    mdp_dynamics.("s") == ss & ...
+                    mdp_dynamics.("s'") == sp & ...
+                    mdp_dynamics.("r") == rwd);
+                if isempty(idx)
+                    continue;
+                end
+                
+                Vs = Vs + ...
+                    mdp_dynamics.("p(s',r | s)")(idx) * ...
+                    (rwd + gamma * value_function(sp));
+            end
+        end
+        
+        % update state-value function
+        value_function(ss) = Vs;
+        
+        % check if evaluation is finished
+        delta = max(delta,abs(Vs - temp));
+    end
+    
+    % progress report
+    fprintf('delta = %.2e\n',delta);
+end
+
+figure; plot(iri_edges,value_function);
+xlabel('Time (s)');
+ylabel('Value (a.u.)');

@@ -4,11 +4,7 @@ clear;
 clc;
 
 %% preface
-Jeong2022_setGraphicalObjectSettings;
-Jeong2022_setColorScheme;
-Jeong2022_setAnonymousHelperFunctions;
-Jeong2022_setModelParameters;
-Jeong2022_setSmoothingKernels;
+Jeong2022_preface;
 
 %% main
 Jeong2022_experiment1;
