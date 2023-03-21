@@ -1,0 +1,35 @@
+%% figure settings
+figopt.color = 'w';
+figopt.numbertitle = 'off';
+figopt.windowstyle = 'docked';
+figopt.inverthardcopy = 'off';
+
+%% axes settings
+axesopt = struct();
+axesopt.fontsize = 10;
+axesopt.linewidth = 2;
+axesopt.xcolor = 'k';
+axesopt.ycolor = 'k';
+axesopt.layer = 'top';
+axesopt.color = 'none';
+axesopt.xdir = 'normal';
+axesopt.ydir = 'normal';
+axesopt.tickdir = 'out';
+axesopt.clipping = 'on';
+axesopt.nextplot = 'add';
+axesopt.xlimspec = 'tight';
+axesopt.ylimspec = 'tight';
+axesopt.colormap = bone(2^8);
+axesopt.fontname = 'helvetica';
+axesopt.ticklength = [0.01,0.025];
+
+%% colorbar settings
+colorbar.ticklength = axesopt.ticklength(2);
+colorbar.linewidth = axesopt.linewidth;
+colorbar.fontsize = axesopt.fontsize;
+colorbar.fontname = axesopt.fontname;
+colorbar.tickdir = 'out';
+colorbar.color = 'none';
+colorbar.xcolor = 'k';
+colorbar.ycolor = 'k';
+colorbar.box = 'off';
