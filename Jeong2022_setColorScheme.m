@@ -8,3 +8,5 @@ cs_intermediate_clr = [1,.65,0];
 reward_clr = [.1,.5,.75];
 % highlight_clr = [.85,.05,.15];
 highlight_clr = [1,.65,0];
+iri_short_clr = [0,1,1];
+iri_long_clr = [1,0,1];
