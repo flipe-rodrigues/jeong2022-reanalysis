@@ -22,7 +22,7 @@ iri_cutoff = 3;
 n_rewards = 500;
 
 %% training stage settings
-n_stages = 5;
+n_stages = 3;
 stage_dur = 60;
 early_clr = [0,0,0];
 late_clr = [1,1,1] * .85;
@@ -137,8 +137,7 @@ end
     'alpha',alpha,...
     'gamma',gamma,...
     'lambda',lambda,...
-    'tau',tau,...
-    'theta',theta);
+    'tau',tau);
 
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
