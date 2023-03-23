@@ -3,8 +3,10 @@ close all;
 clear;
 clc;
 
-%% simulations
+%% preface
 Jeong2022_preface;
+
+%% main
 Jeong2022_experiment1;
 Jeong2022_experiment2;
 Jeong2022_experiment3;

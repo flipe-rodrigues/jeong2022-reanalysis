@@ -1,0 +1,12 @@
+% clrs.cs.plus = [.05,.45,.75];
+cs_plus_clr = [.05,.45,.75];
+cs_minus_clr = [.9,.1,.15];
+cs1_clr = [.25,.45,.725];
+cs2_clr = [.95,.55,.05];
+cs_previous_clr = [0.2,0.3,0.3];
+cs_intermediate_clr = [1,.65,0];
+reward_clr = [.1,.5,.75];
+% highlight_clr = [.85,.05,.15];
+highlight_clr = [1,.65,0];
+iri_short_clr = [0,1,1];
+iri_long_clr = [1,0,1];
