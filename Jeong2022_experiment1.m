@@ -8,7 +8,7 @@ Jeong2022_preface;
 rng(0);
 
 %% key assumptions
-use_clicks = 0;
+use_clicks = 1;
 
 %% experiment parameters
 iri_mu = 12;
@@ -45,7 +45,7 @@ click_counts = histcounts(click_times,state_edges);
 
 %% reaction times
 reaction_times = repmat(.5,n_rewards,1);
-reaction_times = linspace(1,max(.1,dt*2),n_rewards)';
+% reaction_times = linspace(1,max(.1,dt*2),n_rewards)';
 % reaction_times = normalize01(click_times .^ -dt) + .1;
 % reaction_times = normalize01(1 ./ (1 + .005 .* click_times)) + .1;
 % reaction_times = exprnd(.5,n_clicks,1);
@@ -132,7 +132,13 @@ if use_clicks
 end
 
 %% TD learning
-[state,value,rpe,exp1_weights] = tdlambda(...
+% [state,value,rpe,exp1_weights] = tdlambda(...
+%     time,[],stimulus_times,reward_times,microstimuli,[],...
+%     'alpha',alpha,...
+%     'gamma',gamma,...
+%     'lambda',lambda,...
+%     'tau',tau);
+[state,value,rpe,rwdrate,exp1_weights] = difftdlambda(...
     time,[],stimulus_times,reward_times,microstimuli,[],...
     'alpha',alpha,...
     'gamma',gamma,...
@@ -178,6 +184,9 @@ divisor_state_idcs = (0 : n_stage_divisors - 1) * n_states_per_stage;
 stage_divisor_idcs = floor(linspace(1,n_stage_divisors,n_stages));
 stage_state_idcs = (1 : n_states_per_stage)' + ...
     divisor_state_idcs(stage_divisor_idcs);
+
+%% compute reward rate
+rwdrate = rwdrate * 60;
 
 %% figure 1: experiment I
 
@@ -313,6 +322,9 @@ for ii = 1 : n_stages
         'marker','.',...
         'markersize',15,...
         'linewidth',1);
+    plot(sp_stimulus(ii),time,rwdrate,...
+        'color','k',...
+        'linewidth',.1);
     
     % plot state features
     imagesc(sp_state(ii),time+dt/2,[],state');
