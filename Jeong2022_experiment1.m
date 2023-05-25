@@ -8,7 +8,7 @@ Jeong2022_preface;
 rng(0);
 
 %% key assumptions
-use_clicks = 1;
+use_clicks = 0;
 
 %% experiment parameters
 iri_mu = 12;
@@ -19,10 +19,10 @@ reward_period = [-.5,1];
 iri_cutoff = 3;
 
 %% simulation parameters
-n_rewards = 500;
+n_rewards = 2500;
 
 %% training stage settings
-n_stages = 3;
+n_stages = 5;
 stage_dur = 60;
 early_clr = [0,0,0];
 late_clr = [1,1,1] * .85;
@@ -76,28 +76,28 @@ iri_survival_empirical = 1 - [0, iri_cdf_empirical(1:end-1)];
 iri_hzd_empirical = iri_pmf ./ iri_survival_empirical;
 
 %% IRI subjective hazard rate
-% webber_fraction = .15;
-% sig0 = .05;
-% 
-% % define gaussian kernel to introduce scalar timing
-% kernel.weber.win = iri_edges;
-% kernel.weber.mus = kernel.weber.win';
-% kernel.weber.sigs = kernel.weber.mus * webber_fraction;
-% kernel.weber.pdfs = normpdf(kernel.weber.win,kernel.weber.mus,kernel.weber.sigs);
-% I = eye(iri_n_bins);
-% for jj = 1 : iri_n_bins
-%     if all(isnan(kernel.weber.pdfs(jj,:)))
-%         kernel.weber.pdfs(jj,:) = I(jj,:);
-%     end
-% end
-% kernel.weber.pdfs = kernel.weber.pdfs ./ nansum(kernel.weber.pdfs,2);
-% 
-% % smear percept distros with scalar kernel
-% iri_pdf_subjective = iri_pdf * kernel.weber.pdfs';
-% iri_pdf_subjective = iri_pdf_subjective / nansum(iri_pdf_subjective);
-% iri_cdf_subjective = cumsum(iri_pdf_subjective);
-% iri_survival_subjective = 1 - [0, iri_cdf_subjective(1:end-1)];
-% iri_hzd_subjective = round(iri_pdf_subjective ./ iri_survival_subjective,4);
+webber_fraction = .15;
+sig0 = .05;
+
+% define gaussian kernel to introduce scalar timing
+kernel.weber.win = iri_edges;
+kernel.weber.mus = kernel.weber.win';
+kernel.weber.sigs = kernel.weber.mus * webber_fraction;
+kernel.weber.pdfs = normpdf(kernel.weber.win,kernel.weber.mus,kernel.weber.sigs);
+I = eye(iri_n_bins);
+for jj = 1 : iri_n_bins
+    if all(isnan(kernel.weber.pdfs(jj,:)))
+        kernel.weber.pdfs(jj,:) = I(jj,:);
+    end
+end
+kernel.weber.pdfs = kernel.weber.pdfs ./ nansum(kernel.weber.pdfs,2);
+
+% smear iri distro with scalar kernel
+iri_pdf_subjective = iri_pdf * kernel.weber.pdfs';
+iri_pdf_subjective = iri_pdf_subjective / nansum(iri_pdf_subjective);
+iri_cdf_subjective = cumsum(iri_pdf_subjective);
+iri_survival_subjective = 1 - [0, iri_cdf_subjective(1:end-1)];
+iri_hzd_subjective = round(iri_pdf_subjective ./ iri_survival_subjective,4);
 
 %% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
@@ -132,22 +132,22 @@ if use_clicks
 end
 
 %% TD learning
-% [state,value,rpe,exp1_weights] = tdlambda(...
-%     time,[],stimulus_times,reward_times,microstimuli,[],...
-%     'alpha',alpha,...
-%     'gamma',gamma,...
-%     'lambda',lambda,...
-%     'tau',tau);
-[state,value,rpe,rwdrate,exp1_weights] = difftdlambda(...
+[state,value,rpe,exp1_weights] = tdlambda(...
     time,[],stimulus_times,reward_times,microstimuli,[],...
     'alpha',alpha,...
     'gamma',gamma,...
     'lambda',lambda,...
     'tau',tau);
+% [state,value,rpe,rwdrate,exp1_weights] = difftdlambda(...
+%     time,[],stimulus_times,reward_times,microstimuli,[],...
+%     'alpha',alpha,...
+%     'gamma',gamma,...
+%     'lambda',lambda,...
+%     'tau',tau);
 
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
-da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+da = rpe; % conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
 
 %% get reward-aligned snippets of DA & value signals
 [da_baseline_snippets,da_baseline_time] = ...
@@ -159,7 +159,7 @@ da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
 
 %% IRI-based reward selection
 reward_flags = ...
-    [iri(2:end);nan] >= iri_cutoff & ...
+    [iri(2:end);nan] >= iri_cutoff * 1 & ...
     iri >= iri_cutoff;
 da_baseline_snippets(~reward_flags,:) = nan;
 da_reward_snippets(~reward_flags,:) = nan;
@@ -184,9 +184,6 @@ divisor_state_idcs = (0 : n_stage_divisors - 1) * n_states_per_stage;
 stage_divisor_idcs = floor(linspace(1,n_stage_divisors,n_stages));
 stage_state_idcs = (1 : n_states_per_stage)' + ...
     divisor_state_idcs(stage_divisor_idcs);
-
-%% compute reward rate
-rwdrate = rwdrate * 60;
 
 %% figure 1: experiment I
 
@@ -322,9 +319,6 @@ for ii = 1 : n_stages
         'marker','.',...
         'markersize',15,...
         'linewidth',1);
-    plot(sp_stimulus(ii),time,rwdrate,...
-        'color','k',...
-        'linewidth',.1);
     
     % plot state features
     imagesc(sp_state(ii),time+dt/2,[],state');
