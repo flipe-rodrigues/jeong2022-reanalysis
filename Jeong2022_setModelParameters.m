@@ -3,7 +3,7 @@ gammafun = @(dt,eta) exp(-dt/eta);
 etafun = @(dt,gamma) -dt/log(gamma);
 
 %% model parameters (partially inspired by Wei et al. 2022)
-dt = .1;                               % state step size [s]
+dt = .02;                               % state step size [s]
 eta = 100;                            	% discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
 alpha = .02;                          	% learning rate

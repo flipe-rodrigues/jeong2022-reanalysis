@@ -1,9 +1,7 @@
-function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
+function [state,value,rpe,rwdrate,weights,eligibility] = goldmandifftdlambda(...
         time,...
-        presence_features,...
-        stimulus_times,...
+        stimulus_presence,...
         reward_times,...
-        temporal_bases,...
         weights,...
         varargin)
     %UNTITLED3 Summary of this function goes here
@@ -11,8 +9,9 @@ function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
 
     %% input parsing
     n_states = numel(time);
-    n_stimuli = size(stimulus_times,2);
-    n_bases = size(temporal_bases,2);
+    n_stimuli = size(stimulus_presence,2);
+    dt = diff(time(1:2));
+    duration = n_states * dt;
 
     % name-value pair input parsing
     p = inputParser;
@@ -21,58 +20,51 @@ function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
     p.addParameter('lambda',.95);
     p.addParameter('tau',.95);
     p.addParameter('theta',0);
+    p.addParameter('n',20);
     p.parse(varargin{:});
     param = p.Results;
 
+    %% network parameters
+    tau = .25; % in seconds
+    Wi = normpdf(1:param.n,(1:param.n)',param.n);
+    Wi = -(1 - normalize01(Wi)) * 1 / param.n * 0;
+    W = circshift(eye(param.n),-1) .* [ones(param.n-1,1);0] + Wi;
+    I = eye(1,param.n) - (ones(1,param.n) - eye(1,param.n)) * .075;
+    
     %% construct state features
     
     % preallocation
-    stimulus_temporal_features = zeros(n_states,n_bases,n_stimuli);
+    stimulus_features = zeros(n_states,param.n,n_stimuli);
 
-    % for progress keeping purposes
-    iteration_count = sum(cellfun(@(x)sum(~isnan(x)),stimulus_times));
-    iteration = 1;
-    
     % iterate through stimuli
     for ii = 1 : n_stimuli
+
+        % input corresponding to the current stimulus
+        x = stimulus_presence(:,ii);
         
-        % get current stimulus times
-        current_stimulus_times = stimulus_times{:,ii};
-        nan_flags = isnan(current_stimulus_times);
-        [~,stimulus_state_idcs] = ...
-            min(abs(time - current_stimulus_times(~nan_flags)),[],2);
-        stimulus_count = numel(stimulus_state_idcs);
+        % preallocation
+        r = zeros(n_states,param.n);
         
-        % iterate through stimuli
-        for jj = 1 : stimulus_count
-            progressreport(iteration,iteration_count,...
-                'constructing stimulus features');
-            iteration = iteration + 1;
-            if jj == stimulus_count
-                horizon = n_states - stimulus_state_idcs(jj);
-            else
-                horizon = stimulus_state_idcs(jj+1) - stimulus_state_idcs(jj);
-            end
-            idcs = (1 : horizon) + stimulus_state_idcs(jj) - 1;
-            stimulus_temporal_features(idcs,:,ii) = ...
-                temporal_bases(1:horizon,:);
+        % iterate through states
+        for ss = 2 : n_states
+            progressreport(ss-1,n_states-1,sprintf(...
+                'constructing stimulus features (%i/%i)',ii,n_stimuli));
+            drdt = (-r(ss-1,:) + r(ss-1,:) * W + x(ss) * I) / (tau / dt);
+            r(ss,:) = max(0,r(ss-1,:) + drdt);
         end
+        
+        % store stimulus features
+        stimulus_features(:,:,ii) = r * 2.5; % r / max(r(:)) * 2;
     end
 
     % concatenate representations across stimuli
-    state = reshape(stimulus_temporal_features,n_states,n_stimuli*n_bases);
-    
-    %% concatenate stimulus & temporal features
-    presence_features = ...
-        normalize01(presence_features,1) * max(temporal_bases,[],'all');
-    state = [state,presence_features];
+    state = reshape(stimulus_features,n_states,n_stimuli*param.n);
     n_features = size(state,2);
-    
+
     %% compute reward function
-    dt = diff(time(1:2));
-    duration = n_states * dt;
     time_edges = linspace(0,duration,n_states+1);
     reward = histcounts(reward_times,time_edges);
+%     reward = state(:,1);
     
     %% differential td learning
     
@@ -92,6 +84,7 @@ function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
             param.lambda * eligibility(ss-1,:) + state(ss-1,:);
         value(ss) = weights * state(ss,:)';
         rpe(ss) = reward(ss) - rwdrate(ss - 1) + value(ss) - value(ss-1);
+%         rpe(ss) = reward(ss) + param.gamma * value(ss) - value(ss-1);
         weights = weights + param.alpha * rpe(ss) * eligibility(ss,:) * dt;
         rwdrate(ss) = rwdrate(ss-1) + ...
             (1 - param.gamma) * 10 * param.alpha * rpe(ss);

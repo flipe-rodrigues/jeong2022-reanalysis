@@ -19,7 +19,7 @@ reward_period = [-.5,1];
 iri_cutoff = 3;
 
 %% simulation parameters
-n_rewards = 2500;
+n_rewards = 500;
 
 %% training stage settings
 n_stages = 3;
