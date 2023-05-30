@@ -1,6 +1,6 @@
 function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
         time,...
-        presence_features,...
+        stimulus_presence,...
         stimulus_times,...
         reward_times,...
         temporal_bases,...
@@ -27,7 +27,7 @@ function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
     %% construct state features
     
     % preallocation
-    stimulus_temporal_features = zeros(n_states,n_bases,n_stimuli);
+    stimulus_features = zeros(n_states,n_bases,n_stimuli);
 
     % for progress keeping purposes
     iteration_count = sum(cellfun(@(x)sum(~isnan(x)),stimulus_times));
@@ -54,18 +54,18 @@ function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
                 horizon = stimulus_state_idcs(jj+1) - stimulus_state_idcs(jj);
             end
             idcs = (1 : horizon) + stimulus_state_idcs(jj) - 1;
-            stimulus_temporal_features(idcs,:,ii) = ...
+            stimulus_features(idcs,:,ii) = ...
                 temporal_bases(1:horizon,:);
         end
     end
 
     % concatenate representations across stimuli
-    state = reshape(stimulus_temporal_features,n_states,n_stimuli*n_bases);
+    state = reshape(stimulus_features,n_states,n_stimuli*n_bases);
     
     %% concatenate stimulus & temporal features
-    presence_features = ...
-        normalize01(presence_features,1) * max(temporal_bases,[],'all');
-    state = [state,presence_features];
+    stimulus_presence = ...
+        normalize01(stimulus_presence,1) * max(temporal_bases,[],'all');
+    state = [state,stimulus_presence];
     n_features = size(state,2);
     
     %% compute reward function
@@ -94,7 +94,7 @@ function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
         rpe(ss) = reward(ss) - rwdrate(ss - 1) + value(ss) - value(ss-1);
         weights = weights + param.alpha * rpe(ss) * eligibility(ss,:) * dt;
         rwdrate(ss) = rwdrate(ss-1) + ...
-            (1 - param.gamma) * 10 * param.alpha * rpe(ss);
+            (1 - param.gamma) * 5 * param.alpha * rpe(ss);
     end
     
     % convert to units of time

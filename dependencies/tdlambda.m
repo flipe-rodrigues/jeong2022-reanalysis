@@ -20,7 +20,6 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
     p.addParameter('alpha',.01);
     p.addParameter('lambda',.95);
     p.addParameter('tau',.95);
-    p.addParameter('theta',0);
     p.parse(varargin{:});
     param = p.Results;
 
