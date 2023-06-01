@@ -154,15 +154,15 @@ mus = linspace(1,0,n);
 microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
-% csc = zeros(n_states,n);
-% pulse_duration = .5;
-% pulse_length = floor(pulse_duration / dt);
-% for ii = 1 : n
-%     idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
-%     csc(idcs,ii) = 1;
-% end
-% microstimuli = csc;
-% microstimuli = microstimuli / max(sum(microstimuli,2));
+csc = zeros(n_states,n);
+pulse_duration = .5;
+pulse_length = floor(pulse_duration / dt);
+for ii = 1 : n
+    idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
+    csc(idcs,ii) = 1;
+end
+microstimuli = csc;
+microstimuli = microstimuli / max(sum(microstimuli,2));
 
 %% concatenate all stimulus times
 stimulus_times = {...

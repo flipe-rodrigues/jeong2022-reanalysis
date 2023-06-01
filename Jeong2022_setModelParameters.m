@@ -11,7 +11,7 @@ lambda = gammafun(dt,etafun(.2,.95)) * .98 / gamma;	% decay for eligibility trac
 tau = .99.^(1/.2);                      % decay for the stimulus trace
 y0 = 1;                                 % starting height of the stimulus trace
 sigma = .08;                            % width of each basis function
-n = 20;                                 % number of microstimuli per stimulus
+n = 100;                                 % number of microstimuli per stimulus
 
 %% model parameters (high resolution version of Jeong & Namboodiri 2022)
 % dt = .05;                               % state step size [s]

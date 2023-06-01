@@ -9,7 +9,7 @@ rng(0);
 
 %% key assumptions
 use_clicks = 0;
-use_cs_offset = 1;
+use_cs_offset = 0;
 
 %% experiment parameters
 pre_cs1_delay = 1.5;
