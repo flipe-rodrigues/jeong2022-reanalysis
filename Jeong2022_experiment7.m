@@ -276,35 +276,35 @@ for ii = 1 : n_rewards
         sum(da_inh_us_snippets(ii,:)) - sum(da_inh_baseline_snippets(ii,:));
 end
 
-% preallocation
-stimulus_matrix = nan(n_states_per_trial,n_trials);
-value_matrix = nan(n_states_per_trial,n_trials);
-rpe_matrix = nan(n_states_per_trial,n_trials);
-da_matrix = nan(n_states_per_trial,n_trials);
-
-% iterate through trials
-for ii = 1 : n_trials
-    onset_idx = find(time >= trial_onset_times(ii),1);
-    if ii < n_trials
-        offset_idx = find(time >= trial_onset_times(ii+1),1);
-    else
-        offset_idx = find(time >= trial_onset_times(ii) + trial_dur,1);
-    end
-    idcs = onset_idx : offset_idx - 1;
-    n_idcs = numel(idcs);
-    
-    % reshape from trial-less time series to STATES x TRIALS matrices
-    stimulus_matrix(1:n_idcs,ii) = ...
-        cs1_onset_counts(idcs) + ...
-        cs2_onset_counts(idcs) + ...
-        cs1_offset_counts(idcs) * use_cs_offset + ...
-        cs2_offset_counts(idcs) * use_cs_offset + ...
-        click_counts(idcs) * use_clicks + ...
-        us_counts(idcs);
-    value_matrix(1:n_idcs,ii) = value_inh(idcs);
-    rpe_matrix(1:n_idcs,ii) = rpe_inh(idcs);
-    da_matrix(1:n_idcs,ii) = da_inh(idcs);
-end
+% % preallocation
+% stimulus_matrix = nan(n_states_per_trial,n_trials);
+% value_matrix = nan(n_states_per_trial,n_trials);
+% rpe_matrix = nan(n_states_per_trial,n_trials);
+% da_matrix = nan(n_states_per_trial,n_trials);
+% 
+% % iterate through trials
+% for ii = 1 : n_trials
+%     onset_idx = find(time >= trial_onset_times(ii),1);
+%     if ii < n_trials
+%         offset_idx = find(time >= trial_onset_times(ii+1),1);
+%     else
+%         offset_idx = find(time >= trial_onset_times(ii) + trial_dur,1);
+%     end
+%     idcs = onset_idx : offset_idx - 1;
+%     n_idcs = numel(idcs);
+%     
+%     % reshape from trial-less time series to STATES x TRIALS matrices
+%     stimulus_matrix(1:n_idcs,ii) = ...
+%         cs1_onset_counts(idcs) + ...
+%         cs2_onset_counts(idcs) + ...
+%         cs1_offset_counts(idcs) * use_cs_offset + ...
+%         cs2_offset_counts(idcs) * use_cs_offset + ...
+%         click_counts(idcs) * use_clicks + ...
+%         us_counts(idcs);
+%     value_matrix(1:n_idcs,ii) = value_inh(idcs);
+%     rpe_matrix(1:n_idcs,ii) = rpe_inh(idcs);
+%     da_matrix(1:n_idcs,ii) = da_inh(idcs);
+% end
 
 %% figure 8: experiment VII
 
