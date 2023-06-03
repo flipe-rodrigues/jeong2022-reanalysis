@@ -4,8 +4,8 @@ function k = expkernel(varargin)
     %   kernel with a mean of MUS ms and a resolution of BINWIDTH ms.
      
     p = inputParser;
-    p.addParameter('mus',10e3);
-    p.addParameter('binwidth',2);
+    p.addParameter('mus',10);
+    p.addParameter('binwidth',2e-3);
     p.parse(varargin{:});   
     
     k = p.Results;

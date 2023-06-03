@@ -1,6 +1,6 @@
-function [state,value,rpe,weights,eligibility] = tdlambda(...
+function [state,value,rpe,rwdrate,weights,eligibility] = difftdlambda(...
         time,...
-        presence_features,...
+        stimulus_presence,...
         stimulus_times,...
         reward_times,...
         temporal_bases,...
@@ -20,13 +20,14 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
     p.addParameter('alpha',.01);
     p.addParameter('lambda',.95);
     p.addParameter('tau',.95);
+    p.addParameter('theta',0);
     p.parse(varargin{:});
     param = p.Results;
 
     %% construct state features
     
     % preallocation
-    stimulus_temporal_features = zeros(n_states,n_bases,n_stimuli);
+    stimulus_features = zeros(n_states,n_bases,n_stimuli);
 
     % for progress keeping purposes
     iteration_count = sum(cellfun(@(x)sum(~isnan(x)),stimulus_times));
@@ -53,27 +54,18 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
                 horizon = stimulus_state_idcs(jj+1) - stimulus_state_idcs(jj);
             end
             idcs = (1 : horizon) + stimulus_state_idcs(jj) - 1;
-%             temporal_scaling = max(0,normrnd(1,param.theta));
-%             unscaled_bases = temporal_bases;
-%             if horizon > 1
-%                 scaled_bases = interp1(...
-%                     time,unscaled_bases,time*temporal_scaling);
-%             else
-%                 scaled_bases = unscaled_bases;
-%             end
-            stimulus_temporal_features(idcs,:,ii) = ...
-                ...1/2 * stimulus_temporal_features(idcs,:,ii) + ...
+            stimulus_features(idcs,:,ii) = ...
                 temporal_bases(1:horizon,:);
         end
     end
 
     % concatenate representations across stimuli
-    state = reshape(stimulus_temporal_features,n_states,n_stimuli*n_bases);
+    state = reshape(stimulus_features,n_states,n_stimuli*n_bases);
     
     %% concatenate stimulus & temporal features
-    presence_features = ...
-        normalize01(presence_features,1) * max(temporal_bases,[],'all');
-    state = [state,presence_features];
+    stimulus_presence = ...
+        normalize01(stimulus_presence,1) * max(temporal_bases,[],'all');
+    state = [state,stimulus_presence];
     n_features = size(state,2);
     
     %% compute reward function
@@ -82,11 +74,12 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
     time_edges = linspace(0,duration,n_states+1);
     reward = histcounts(reward_times,time_edges);
     
-    %% td learning
+    %% differential td learning
     
     % preallocation
     value = zeros(n_states,1);
     rpe = zeros(n_states,1);
+    rwdrate = zeros(n_states,1);
     eligibility = zeros(n_states,n_features);
     if isempty(weights)
         weights = zeros(1,n_features);
@@ -94,11 +87,16 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
     
     % iterate through states
     for ss = 2 : n_states
-        progressreport(ss-1,n_states-1,'running TD(lambda)');
+        progressreport(ss-1,n_states-1,'running differential TD(lambda)');
         eligibility(ss,:) = ...
-            param.gamma * param.lambda * eligibility(ss-1,:) + state(ss-1,:);
+            param.lambda * eligibility(ss-1,:) + state(ss-1,:);
         value(ss) = weights * state(ss,:)';
-        rpe(ss) = reward(ss) + param.gamma * value(ss) - value(ss-1);
+        rpe(ss) = reward(ss) - rwdrate(ss - 1) + value(ss) - value(ss-1);
         weights = weights + param.alpha * rpe(ss) * eligibility(ss,:) * dt;
+        rwdrate(ss) = rwdrate(ss-1) + ...
+            (1 - param.gamma) * 5 * param.alpha * rpe(ss);
     end
+    
+    % convert to units of time
+    rwdrate = rwdrate / dt;
 end

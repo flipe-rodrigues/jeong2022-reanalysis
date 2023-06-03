@@ -45,7 +45,7 @@ click_counts = histcounts(click_times,state_edges);
 
 %% reaction times
 reaction_times = repmat(.5,n_rewards,1);
-reaction_times = linspace(1,max(.1,dt*2),n_rewards)';
+% reaction_times = linspace(1,max(.1,dt*2),n_rewards)';
 % reaction_times = normalize01(click_times .^ -dt) + .1;
 % reaction_times = normalize01(1 ./ (1 + .005 .* click_times)) + .1;
 % reaction_times = exprnd(.5,n_clicks,1);
@@ -57,7 +57,11 @@ end
 %% reward times
 reward_times = click_times + reaction_times;
 reward_times = dt * round(reward_times / dt);
-reward_counts = histcounts(reward_times,state_edges);
+
+%% reward presence flags
+reward_presence = sum(...
+    time >= reward_times & ...
+    time <= reward_times + .25,1)';
 
 %% inter-reward-intervals
 iri_n_bins = round(max(iri) / iri_mu) * 10;
@@ -76,28 +80,28 @@ iri_survival_empirical = 1 - [0, iri_cdf_empirical(1:end-1)];
 iri_hzd_empirical = iri_pmf ./ iri_survival_empirical;
 
 %% IRI subjective hazard rate
-% webber_fraction = .15;
-% sig0 = .05;
-% 
-% % define gaussian kernel to introduce scalar timing
-% kernel.weber.win = iri_edges;
-% kernel.weber.mus = kernel.weber.win';
-% kernel.weber.sigs = kernel.weber.mus * webber_fraction;
-% kernel.weber.pdfs = normpdf(kernel.weber.win,kernel.weber.mus,kernel.weber.sigs);
-% I = eye(iri_n_bins);
-% for jj = 1 : iri_n_bins
-%     if all(isnan(kernel.weber.pdfs(jj,:)))
-%         kernel.weber.pdfs(jj,:) = I(jj,:);
-%     end
-% end
-% kernel.weber.pdfs = kernel.weber.pdfs ./ nansum(kernel.weber.pdfs,2);
-% 
-% % smear percept distros with scalar kernel
-% iri_pdf_subjective = iri_pdf * kernel.weber.pdfs';
-% iri_pdf_subjective = iri_pdf_subjective / nansum(iri_pdf_subjective);
-% iri_cdf_subjective = cumsum(iri_pdf_subjective);
-% iri_survival_subjective = 1 - [0, iri_cdf_subjective(1:end-1)];
-% iri_hzd_subjective = round(iri_pdf_subjective ./ iri_survival_subjective,4);
+webber_fraction = .15;
+sig0 = .05;
+
+% define gaussian kernel to introduce scalar timing
+kernel.weber.win = iri_edges;
+kernel.weber.mus = kernel.weber.win';
+kernel.weber.sigs = kernel.weber.mus * webber_fraction;
+kernel.weber.pdfs = normpdf(kernel.weber.win,kernel.weber.mus,kernel.weber.sigs);
+I = eye(iri_n_bins);
+for jj = 1 : iri_n_bins
+    if all(isnan(kernel.weber.pdfs(jj,:)))
+        kernel.weber.pdfs(jj,:) = I(jj,:);
+    end
+end
+kernel.weber.pdfs = kernel.weber.pdfs ./ nansum(kernel.weber.pdfs,2);
+
+% smear iri distro with scalar kernel
+iri_pdf_subjective = iri_pdf * kernel.weber.pdfs';
+iri_pdf_subjective = iri_pdf_subjective / nansum(iri_pdf_subjective);
+iri_cdf_subjective = cumsum(iri_pdf_subjective);
+iri_survival_subjective = 1 - [0, iri_cdf_subjective(1:end-1)];
+iri_hzd_subjective = round(iri_pdf_subjective ./ iri_survival_subjective,4);
 
 %% microstimuli
 stimulus_trace = stimulustracefun(y0,tau,time)';
@@ -131,6 +135,10 @@ if use_clicks
         click_times];
 end
 
+%% concatenate all state flags
+stimulus_presence = [...
+    reward_presence];
+
 %% TD learning
 [state,value,rpe,exp1_weights] = tdlambda(...
     time,[],stimulus_times,reward_times,microstimuli,[],...
@@ -138,10 +146,23 @@ end
     'gamma',gamma,...
     'lambda',lambda,...
     'tau',tau);
+% [state,value,rpe,rwdrate,exp1_weights] = difftdlambda(...
+%     time,[],stimulus_times,reward_times,microstimuli,[],...
+%     'alpha',alpha,...
+%     'gamma',gamma,...
+%     'lambda',lambda,...
+%     'tau',tau);
+% [state,value,rpe,rwdrate,exp1_weights] = goldmandifftdlambda(...
+%     time,stimulus_presence,reward_times,[],...
+%     'alpha',alpha,...
+%     'gamma',gamma,...
+%     'lambda',lambda,...
+%     'n',n);
 
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
 da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+da = da + psi * max(dlight_kernel.pdf);
 
 %% get reward-aligned snippets of DA & value signals
 [da_baseline_snippets,da_baseline_time] = ...
@@ -152,12 +173,12 @@ da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
     signal2eventsnippets(time,value,reward_times,[-10,40],dt);
 
 %% IRI-based reward selection
-reward_flags = ...
-    [iri(2:end);nan] >= iri_cutoff & ...
+iri_flags = ...
+    [iri(2:end);nan] >= iri_cutoff * 1 & ...
     iri >= iri_cutoff;
-da_baseline_snippets(~reward_flags,:) = nan;
-da_reward_snippets(~reward_flags,:) = nan;
-value_snippets(~reward_flags,:) = nan;
+da_baseline_snippets(~iri_flags,:) = nan;
+da_reward_snippets(~iri_flags,:) = nan;
+value_snippets(~iri_flags,:) = nan;
 
 %% compute 'DA response' metric
 
@@ -413,25 +434,12 @@ plot(sp_hazard,iri_edges,iri_hzd,...
     'linewidth',2);
 
 % plot reaction times
-if use_clicks
-    plot(sp_reaction,...
-        reward_times,reaction_times,...
-        'color','k',...
-        'marker','.',...
-        'markersize',5,...
-        'linestyle','none');
-else
-    plot(sp_reaction,...
-        xlim(sp_reaction),ylim(sp_reaction),...
-        'color','k',...
-        'linestyle','-',...
-        'linewidth',1);
-    plot(sp_reaction,...
-        xlim(sp_reaction),fliplr(ylim(sp_reaction)),...
-        'color','k',...
-        'linestyle','-',...
-        'linewidth',1);
-end
+plot(sp_reaction,...
+    reward_times,reaction_times,...
+    'color','k',...
+    'marker','.',...
+    'markersize',5,...
+    'linestyle','none');
 
 % plot stimulus trace
 plot(sp_stimulustrace,...
@@ -718,10 +726,14 @@ x = randn(m,1);
 X = x .^ [1,2];
 y = X * betas + randn(m,1);
 
+h = floor(.01 * m);
+% x(randperm(m,h)) = normrnd(mean(x),1);
+y(randperm(m,h)) = normrnd(7.5,1,h,1);
+
 grapeplot(x,y,...
     'marker','o',...
-    'markerfacecolor','w',...
-    'markeredgecolor','k',...
+    'markerfacecolor',[1,1,1],...
+    'markeredgecolor',[0,0,0],...
     'markersize',6,...
     'linewidth',1.5);
 
@@ -736,3 +748,7 @@ p = plot(xx,y_hat,...
 
 xlim(xlim+[-1,1]*.05*range(xlim));
 ylim(ylim+[-1,1]*.05*range(ylim));
+
+save_path = 'C:\Users\flipe\Desktop\retreat';
+svg_file = fullfile(save_path,['poly','.svg']);
+print(gcf,svg_file,'-dsvg','-painters');
