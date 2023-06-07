@@ -2,4 +2,5 @@ Jeong2022_setGraphicalObjectSettings;
 Jeong2022_setColorScheme;
 Jeong2022_setAnonymousHelperFunctions;
 Jeong2022_setModelParameters;
+Jeong2022_setSimulationParameters;
 Jeong2022_setSmoothingKernels;

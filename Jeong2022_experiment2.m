@@ -168,7 +168,11 @@ cs_flags = [...
 
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
-da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+if use_dlight_kernel
+    da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+else
+    da = rpe;
+end
 da = da + psi * max(dlight_kernel.pdf);
 
 %% get reward-aligned snippets of DA signal
