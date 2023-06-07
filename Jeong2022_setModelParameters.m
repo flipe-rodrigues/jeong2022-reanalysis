@@ -3,10 +3,10 @@ gammafun = @(dt,eta) exp(-dt/eta);
 etafun = @(dt,gamma) -dt/log(gamma);
 
 %% model parameters (partially inspired by Wei et al. 2022)
-dt = .05;                                % state step size [s]
-eta = 1e3;                            	% discount time constant [s]
+dt = .05;                               % state step size [s]
+eta = 200;                            	% discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
-alpha = .01;                          	% learning rate
+alpha = .02;                          	% learning rate
 lambda = gammafun(dt,etafun(.2,.95)) * .98 / gamma;	% decay for eligibility traces
 tau = .99.^(1/.2);                      % decay for the stimulus trace
 y0 = 1;                                 % starting height of the stimulus trace

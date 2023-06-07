@@ -28,7 +28,7 @@ cs_period = [0,2];
 us_period = cs_period + cs_dur_set(1) + trace_dur;
 
 %% simulation parameters
-n_trials = 500;
+n_trials = 600;
 trial_idcs = 1 : n_trials;
 
 %% conditioned stimuli (CS)
@@ -120,7 +120,7 @@ for ii = 1 : n_trials
     violation_flags = ...
         abs(bg_reward_times - cs_onset_times(ii)) < bg_cs_min_delay | ...
         (bg_reward_times >= cs_onset_times(ii) & ...
-        bg_reward_times <= cs_offset_times(ii) + trace_dur);
+        bg_reward_times <= cs_offset_times(ii) + trace_dur + iti_delay);
     bg_reward_times(violation_flags) = nan;
 end
 bg_reward_times = bg_reward_times(~isnan(bg_reward_times));

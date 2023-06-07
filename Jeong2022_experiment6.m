@@ -27,7 +27,7 @@ icsi_min = .25;
 icsi_max = 99;
 
 %% simulation parameters
-n_rewards = 500;
+n_rewards = 400;
 
 %% inter-CS intervals
 icsi_pd = truncate(makedist('exponential','mu',icsi_mu),icsi_min,icsi_max);

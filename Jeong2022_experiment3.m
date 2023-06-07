@@ -28,7 +28,7 @@ cs_period = [0,2];
 us_period = cs_period + cs_dur_set(1) + trace_dur;
 
 %% simulation parameters
-n_trials = 500;
+n_trials = 600;
 trial_idcs = 1 : n_trials;
 
 %% conditioned stimuli (CS)
