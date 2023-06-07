@@ -68,7 +68,9 @@ state_edges = linspace(0,dur,n_states+1);
 
 %% CS onset times
 cs_plus_onset_times = trial_onset_times(cs_plus_flags) + pre_cs_delay;
+cs_plus_onset_times = dt * round(cs_plus_onset_times / dt);
 cs_minus_onset_times = trial_onset_times(~cs_plus_flags) + pre_cs_delay;
+cs_minus_onset_times = dt * round(cs_minus_onset_times / dt);
 cs_plus_onset_counts = histcounts(cs_plus_onset_times,state_edges);
 cs_minus_onset_counts = histcounts(cs_minus_onset_times,state_edges);
 
@@ -161,7 +163,11 @@ cs_flags = [...
 
 %% compute 'DA signal'
 padded_rpe = padarray(rpe,dlight_kernel.nbins/2,0);
-da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+if use_dlight_kernel
+    da = conv(padded_rpe(1:end-1),dlight_kernel.pdf,'valid');
+else
+    da = rpe;
+end
 da = da + psi * max(dlight_kernel.pdf);
 
 %% get CS- & US-aligned snippets of DA signal
