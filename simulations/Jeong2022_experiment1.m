@@ -19,6 +19,8 @@ reward_period = [-.5,1];
 iri_cutoff = 3;
 
 %% simulation parameters
+load('exp1data');
+n_rewards = numel(reaction_times);
 n_rewards = 500;
 
 %% training stage settings
@@ -44,7 +46,7 @@ click_times = dt * round(click_times / dt);
 click_counts = histcounts(click_times,state_edges);
 
 %% reaction times
-reaction_times = repmat(.5,n_rewards,1);
+% reaction_times = repmat(.5,n_rewards,1);
 % reaction_times = linspace(1,max(.1,dt*2),n_rewards)';
 % reaction_times = normalize01(click_times .^ -dt) + .1;
 % reaction_times = normalize01(1 ./ (1 + .005 .* click_times)) + .1;
