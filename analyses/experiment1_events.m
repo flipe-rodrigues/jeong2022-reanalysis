@@ -324,7 +324,7 @@ for mm = 1 : n_mice
     ylabel('Inter-reward-interval (s)');
     axis tight;
 end
-
+return; 
 %% fetch common behavioral variables
 solenoid_flags = events.label == 'reward';
 lick_flags = events.label == 'lick';
