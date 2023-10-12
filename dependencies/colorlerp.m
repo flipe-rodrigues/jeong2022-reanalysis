@@ -1,7 +1,6 @@
 function map = colorlerp(clrs,k)
     %UNTITLED Summary of this function goes here
     %   Detailed explanation goes here
-
     K = 1e3;
     n = size(clrs,1);
     m = K / (n - 1);

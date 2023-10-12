@@ -19,8 +19,8 @@ reward_period = [-.5,1];
 iri_cutoff = 3;
 
 %% simulation parameters
-load('exp1data');
-n_rewards = numel(reaction_times);
+% load('exp1data');
+% n_rewards = numel(reaction_times);
 n_rewards = 500;
 
 %% training stage settings
