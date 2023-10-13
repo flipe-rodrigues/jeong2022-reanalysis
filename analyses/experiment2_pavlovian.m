@@ -1,5 +1,5 @@
 %% initialization
-close all;
+% close all;
 clear;
 clc;
 
@@ -15,7 +15,8 @@ mouse_ids = mouse_ids(~ismember(mouse_ids,'HJ_FP_M8'));
 n_mice = numel(mouse_ids);
 
 %% experiment settings
-experiment_id = 'Pavlovian';
+experiment_id = 'pavlovian';
+subexperiment_id = 'acquisition';
 
 %% acquisition settings
 fs = 120;
@@ -35,7 +36,7 @@ iri_cutoff = 3;
 rt_cutoffs = [-inf,+inf];
 
 %% training stage settings
-n_stages = 3;
+n_stages = 6;
 stage_clrs = gray(n_stages+1);
 
 %% data parsing
@@ -45,23 +46,23 @@ for mm = 1 : n_mice
     
     % parse mouse directory
     mouse_path = fullfile(data_path,mouse_ids{mm},experiment_id);
-    mouse_dir = dir(mouse_path);
+    mouse_dir = dir([mouse_path,filesep,'*',subexperiment_id]);
     mouse_dir = mouse_dir(cellfun(@(x)~contains(x,'.'),{mouse_dir.name}));
     
     % parse session directory
     session_ids = {mouse_dir.name};
     session_days = cellfun(@(x)str2double(strrep(x,'Day','')),session_ids);
-    [~,sorted_idcs] = sort(session_days);
-    session_ids = session_ids(sorted_idcs);
+    [~,chrono_idcs] = sort(session_days);
+    session_ids = session_ids(chrono_idcs);
     n_sessions = numel(session_ids);
     
+    % sort sessions chronologically
+    days = cellfun(@(x) sscanf(x,'Day%i'),session_ids);
+    [~,chrono_idcs] = sort(days);
+    session_ids = session_ids(chrono_idcs);
+
     % initialize mouse counters
     mouse_reward_counter = 0;
-
-    % mouse-specific session selection
-    if strcmpi(mouse_ids{mm},'HJ_FP_M7')
-        n_sessions = 14;
-    end
     
     % iterate through sessions
     for ss = 1 : n_sessions
@@ -71,17 +72,10 @@ for mm = 1 : n_mice
 
         %% load behavioral data
         bhv_id = sprintf('%s_%s_eventlog.mat',...
-            mouse_ids{mm},session_ids{ss});
+            mouse_ids{mm},strrep(session_ids{ss},['_',subexperiment_id],''));
         bhv_path = fullfile(session_path,bhv_id);
         load(bhv_path)
-        
-        % load task related information
-%         eventtime = eventlog(:,2);
-%         eventindex = eventlog(:,1);
-%         nosolenoidflag = eventlog(:,3);
-%         [~,licktime,CSid,CStime,CSduration,~,fxreward] = ...
-%             eventfrompavlovian(eventtime,eventindex,nosolenoidflag);
-        
+
         %% parse events
         event_labels = categorical(...
             eventlog(:,1),[15,16,5,10,0],...
@@ -118,10 +112,18 @@ for mm = 1 : n_mice
         end
 
         %% skip based on CS-US delay
-        cs_flags = [reward_flags(2:end);false];
-        csus_delays = round(reward_times - event_times(cs_flags));
+        cs_flags = ismember(event_labels,{'CS1','CS2'});
+        cs_plus_flags = false(n_events,1);
+        
+        % iterate through rewards
+        for ii = 1 : n_rewards
+            cs_plus_idx = find(...
+                cs_flags & event_idcs < reward_events(ii),1,'last');
+            cs_plus_flags(cs_plus_idx) = true;
+        end
+        csus_delays = round(reward_times - event_times(cs_plus_flags));
         if unique(csus_delays) ~= 3
-            break;
+            continue;
         end
         
         %% parse first licks after reward delivery

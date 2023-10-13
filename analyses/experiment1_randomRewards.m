@@ -14,7 +14,7 @@ mouse_ids = {data_dir.name};
 n_mice = numel(mouse_ids);
 
 %% experiment settings
-experiment_id = 'RandomRewards';
+experiment_id = 'randomrewards';
 
 %% acquisition settings
 fs = 120;
@@ -55,6 +55,12 @@ for mm = 1 : n_mice
     [~,sorted_idcs] = sort(session_days);
     session_ids = session_ids(sorted_idcs);
     n_sessions = numel(session_ids);
+    
+    % sort sessions chronologically
+    days = cellfun(@(x) sscanf(x,'Day%i'),session_ids);
+    [~,chrono_idcs] = sort(days);
+    session_ids = session_ids(chrono_idcs);
+%     fprintf('\n%s: %i sessions\n',mouse_ids{mm},n_sessions);
     
     % initialize mouse counters
     mouse_reward_counter = 0;
@@ -110,7 +116,7 @@ for mm = 1 : n_mice
         firstlick_idcs = sum(reward_times > firstlick_times',2) + 1;
         firstlick_times = firstlick_times(firstlick_idcs);
         n_firstlicks = sum(firstlick_flags);
-
+        
         %% compute inter-reward-intervals (IRI, nominal & actual)
         iri_nominal = diff([0;reward_times]);
         iri_actual = diff([0;event_times(firstlick_flags)]);
@@ -165,14 +171,14 @@ for mm = 1 : n_mice
             time,da,reward_times,roi_period,dt);
         
         % nanify (maybe this should be moved inside??? the snippet fun???)
-%         time_mat = ...
-%             da_roi_time > -[inf;reaction_times(1:end-1)] & ...
-%             da_roi_time < reaction_times;
-%         da_roi_snippets(~time_mat) = nan;
-%         time_mat = ...
-%             da_reward_time > -[inf;reaction_times(1:end-1)] & ...
-%             da_reward_time < reaction_times * 0;
-%         da_reward_snippets(~time_mat) = nan;
+        %         time_mat = ...
+        %             da_roi_time > -[inf;reaction_times(1:end-1)] & ...
+        %             da_roi_time < reaction_times;
+        %         da_roi_snippets(~time_mat) = nan;
+        %         time_mat = ...
+        %             da_reward_time > -[inf;reaction_times(1:end-1)] & ...
+        %             da_reward_time < reaction_times * 0;
+        %         da_reward_snippets(~time_mat) = nan;
         
         % preallocation
         da_response = nan(n_rewards,1);
