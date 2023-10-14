@@ -8,7 +8,7 @@ Jeong2022_preface;
 rng(0);
 
 %% key assumptions
-use_clicks = 0;
+use_clicks = 1;
 
 %% experiment parameters
 iri_mu = 12;
@@ -19,9 +19,9 @@ reward_period = [-.5,1];
 iri_cutoff = 3;
 
 %% simulation parameters
-% load('exp1data');
-% n_rewards = numel(reaction_times);
-n_rewards = 500;
+load('exp1data');
+n_rewards = numel(reaction_times);
+% n_rewards = 500;
 
 %% training stage settings
 n_stages = 3;
