@@ -134,6 +134,19 @@ for mm = 1 : n_mice
             continue;
         end
         
+        %
+        cs_times = event_times(cs_flags);
+        cs_plus_times = ...
+            cs_times(event_labels(cs_flags) == cs_plus_labels{mm,ss});
+        cs_minus_times = ...
+            cs_times(event_labels(cs_flags) ~= cs_plus_labels{mm,ss});
+        n_cs_minus = numel(cs_minus_times);
+        if n_cs_minus < n_rewards
+            cs_minus_times = [cs_minus_times; nan(n_rewards-n_cs_minus,1)];
+        elseif n_cs_minus > n_rewards
+            cs_minus_times = cs_minus_times(1:n_rewards);
+        end
+        
         %% parse first licks after reward delivery
         lick_flags = event_labels == 'lick';
         
@@ -202,8 +215,10 @@ for mm = 1 : n_mice
             time,da,firstlick_times,baseline_period,dt);
         [da_reward_snippets,da_reward_time] = signal2eventsnippets(...
             time,da,firstlick_times,reward_period,dt);
-        [da_roi_snippets,da_roi_time] = signal2eventsnippets(...
+        [da_roi_snippets,~] = signal2eventsnippets(...
             time,da,reward_times,roi_period,dt);
+        [da_csminus_snippets,da_roi_time] = signal2eventsnippets(...
+            time,da,cs_minus_times,roi_period,dt);
 
         % preallocation
         da_response = nan(n_rewards,1);
@@ -263,10 +278,11 @@ for mm = 1 : n_mice
         % construct DA table
         da_table = table(...
             da_roi_snippets,...
+            da_csminus_snippets,...
             da_baseline_snippets,...
             da_reward_snippets,...
             da_response,...
-            'variablenames',{'roi','baseline','reward','response'});
+            'variablenames',{'roi','cs-','baseline','reward','response'});
         
         % concatenate into a session table
         session_data = table(...
@@ -1087,7 +1103,7 @@ for mm = 1 : n_mice
     ylabel(sps(mm),'DA (\DeltaF/F)');
 
     % plot DA raster
-    da_mat = data.da.roi(mouse_flags & valid_flags,:);
+    da_mat = data.da.("cs-")(mouse_flags & valid_flags,:);
     imagesc(sps(mm),roi_period,[],da_mat,quantile(da_mat,[0,.999],'all')');
 
     % plot zero line
