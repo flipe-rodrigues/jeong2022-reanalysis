@@ -89,7 +89,7 @@ for mm = 1 : n_mice
         event_idcs = (1 : numel(event_labels))';
         start_idx = find(event_labels == 'reward',1);
         end_idx = find(event_labels == 'end');
-        session_dur = event_times(end_idx);
+        session_dur = event_times(end_idx) - event_times(start_idx);
         
         %% event selection
         valid_flags = ...
@@ -119,8 +119,7 @@ for mm = 1 : n_mice
         
         %% compute inter-reward-intervals (IRI, nominal & actual)
         iri_nominal = diff([0;reward_times]);
-        iri_actual = diff([0;event_times(firstlick_flags)]);
-        iri_actual = iri_actual(firstlick_idcs);
+        iri_actual = diff([0;firstlick_times]);
         
         %% parse reaction time
         reaction_times = firstlick_times - reward_times;
@@ -280,7 +279,7 @@ for mm = 1 : n_mice
     if mm == 1
         data = mouse_data;
     else
-        data = [data;mouse_data];
+        data = [data; mouse_data];
     end
 end
 
