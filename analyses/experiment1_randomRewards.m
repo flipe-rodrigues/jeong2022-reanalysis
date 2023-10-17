@@ -11,6 +11,7 @@ data_dir = data_dir(cellfun(@(x)~contains(x,'.'),{data_dir.name}));
 
 %% mouse settings
 mouse_ids = {data_dir.name};
+mouse_ids = mouse_ids([6,2,3,4,5,1,7,8]);
 n_mice = numel(mouse_ids);
 
 %% experiment settings
@@ -22,7 +23,6 @@ dt = 1 / fs;
 
 %% smoothing kernels
 lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
-% lickrate_kernel = expkernel('mu',1/3,'binwidth',dt);
 
 %% analysis parameters
 roi_period = [-4,8];
@@ -32,8 +32,7 @@ lick_period = roi_period + lickrate_kernel.paddx;
 
 %% selection criteria
 iri_cutoff = 3;
-rt_cutoffs = [.25,5];
-rt_cutoffs = [-inf,+inf];
+rt_cutoffs = [-inf,+inf]; % [.25,5];
 
 %% training stage settings
 n_stages = 3;
@@ -170,14 +169,14 @@ for mm = 1 : n_mice
             time,da,reward_times,roi_period,dt);
         
         % nanify (maybe this should be moved inside??? the snippet fun???)
-        %         time_mat = ...
-        %             da_roi_time > -[inf;reaction_times(1:end-1)] & ...
-        %             da_roi_time < reaction_times;
-        %         da_roi_snippets(~time_mat) = nan;
-        %         time_mat = ...
-        %             da_reward_time > -[inf;reaction_times(1:end-1)] & ...
-        %             da_reward_time < reaction_times * 0;
-        %         da_reward_snippets(~time_mat) = nan;
+%         time_mat = ...
+%             da_roi_time > -[inf;reaction_times(1:end-1)] & ...
+%             da_roi_time < reaction_times;
+%         da_roi_snippets(~time_mat) = nan;
+%         time_mat = ...
+%             da_reward_time > -[inf;reaction_times(1:end-1)] & ...
+%             da_reward_time < reaction_times * 0;
+%         da_reward_snippets(~time_mat) = nan;
         
         % preallocation
         da_response = nan(n_rewards,1);
