@@ -30,7 +30,7 @@ dt = 1 / fs;
 lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
 
 %% analysis parameters
-trial_period = [0,csus_delay] + [-1,1] * 2;
+trial_period = [0,csus_delay] + [-2,7];
 baseline_period = [-1,0];
 roi_period = [0,2];
 lick_period = trial_period + lickrate_kernel.paddx;
@@ -77,8 +77,8 @@ for mm = 1 : n_mice
         
         %% parse events
         event_labels = categorical(...
-            eventlog(:,1),[15,16,5,10,14,0],...
-            {'CS1','CS2','lick','US','trial_end','session_end'});
+            eventlog(:,1),[15,16,5,10,7,14,0],...
+            {'CS1','CS2','lick','US','bg_rwd','trial_end','session_end'});
         event_times = eventlog(:,2);
         nosolenoid_flags = eventlog(:,3);
         event_idcs = (1 : numel(event_labels))';
@@ -173,31 +173,31 @@ for mm = 1 : n_mice
             lick_edges(1:end-1),lick_counts,cs_times,baseline_period,dt);
         [lick_cs_snippets,~] = signal2eventsnippets(...
             lick_edges(1:end-1),lick_counts,cs_times,roi_period,dt);
+        [lick_anticipatory_snippets,lick_anticipatory_time] = signal2eventsnippets(...
+            lick_edges(1:end-1),lick_counts,cs_times,[0,csus_delay],dt);
         [lick_trial_snippets,lick_trial_time] = signal2eventsnippets(...
             lick_edges(1:end-1),lick_counts,cs_times,lick_period,dt);
         [lick_reward_snippets,lick_reward_time] = signal2eventsnippets(...
             lick_edges(1:end-1),lick_counts,reward_times,lick_period,dt);
         
-        % nanify (maybe this should be moved inside??? the snippet fun???)
-        time_mat = ...
-            lick_trial_time > -[inf;diff(us_times)] & ...
-            lick_trial_time < +[diff(us_times);inf];
-        lick_trial_snippets(~time_mat) = nan;
-        time_mat = ...
-            lick_reward_time > -[inf;diff(reward_times)] & ...
-            lick_reward_time < +[diff(reward_times);inf];
-        lick_reward_snippets(~time_mat) = nan;
-        
         % preallocation
         lick_rate = nan(n_trials,1);
+        lick_onset = nan(n_trials,1);
         
         % iterate through trials
         for ii = 1 : n_trials
             
             % compute 'lick rate' metric
             lick_rate(ii) = ...
-                sum(lick_cs_snippets(ii,:)) / range(baseline_period) - ...
-                sum(lick_baseline_snippets(ii,:)) / range(roi_period);
+                sum(lick_cs_snippets(ii,:)) / range(roi_period) - ...
+                sum(lick_baseline_snippets(ii,:)) / range(baseline_period);
+            
+            % compute 'median lick onset time' metric
+            lick_cdf = cumsum(lick_anticipatory_snippets(ii,:));
+            lick_onset_idx = find(lick_cdf >= .5,1);
+            if ~isempty(lick_onset_idx)
+                lick_onset(ii) = lick_anticipatory_time(lick_onset_idx);
+            end
         end
         
         %% compute inter-lick-intervals (ILI)
@@ -233,11 +233,11 @@ for mm = 1 : n_mice
             
             % compute 'DA response' metric
             da_cs_response(ii) = ...
-                sum(da_cs_snippets(ii,:)) - ...
-                sum(da_cs_baseline_snippets(ii,:));
+                sum(da_cs_snippets(ii,:)) / range(roi_period) - ...
+                sum(da_cs_baseline_snippets(ii,:)) / range(baseline_period);
             da_reward_response(ii) = ...
-                sum(da_reward_snippets(ii,:)) - ...
-                sum(da_reward_baseline_snippets(ii,:));
+                sum(da_reward_snippets(ii,:)) / range(roi_period) - ...
+                sum(da_reward_baseline_snippets(ii,:)) / range(baseline_period);
         end
         
         %% organize session data into tables
@@ -287,7 +287,8 @@ for mm = 1 : n_mice
             lick_trial_snippets,...
             lick_reward_snippets,...
             lick_rate,...
-            'variablenames',{'delivery','collection','rate'});
+            lick_onset,...
+            'variablenames',{'delivery','collection','rate','onset'});
         
         % construct DA table
         da_table = table(...
@@ -323,7 +324,7 @@ for mm = 1 : n_mice
             'trial'...
             'iri',...
             'rt',...
-            'licks',...
+            'lick',...
             'ili',...
             'da',...
             });
@@ -1019,7 +1020,7 @@ for mm = 1 : n_mice
         end
         x = data.trial.index.mouse(trial_flags);
         X = [ones(size(x)),x];
-        y = data.licks.rate(trial_flags);
+        y = data.lick.rate(trial_flags);
         betas = robustfit(x,y);
         plot(sps(mm),...
             x,y,'.',...
@@ -1038,7 +1039,84 @@ for mm = 1 : n_mice
         reward_flags;
     x = data.trial.index.mouse(trial_flags);
     X = [ones(size(x)),x];
-    y = data.licks.rate(trial_flags);
+    y = data.lick.rate(trial_flags);
+    nan_flags = isnan(y);
+    betas = robustfit(x,y);
+    plot(sps(mm),...
+        x,X*betas,'--k',...
+        'linewidth',1);
+end
+
+%% plot anticipatory lick onset time dynamics
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','lick_onset_time',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlimspec','tight',...
+    'xtick',0:100:max(data.trial.index.mouse),...
+    'ylimspec','tight',...
+    'nextplot','add',...
+    'linewidth',2,...
+    'fontsize',12,...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Trial #');
+    ylabel(sps(mm),'Anticipatory lick onset time (s)');
+    
+    % iterate through sessions
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        trial_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            reward_flags;
+        if sum(trial_flags) == 0
+            continue;
+        end
+        x = data.trial.index.mouse(trial_flags);
+        X = [ones(size(x)),x];
+        y = data.lick.onset(trial_flags);
+        if sum(~isnan(y)) <= 2
+            continue;
+        end
+        betas = robustfit(x,y);
+        plot(sps(mm),...
+            x,y,'.',...
+            'markersize',15,...
+            'color',session_clrs(ss,:));
+        plot(sps(mm),...
+            x,X*betas,'-w',...
+            'linewidth',3);
+        plot(sps(mm),...
+            x,X*betas,'-',...
+            'color',session_clrs(ss,:),...
+            'linewidth',1.5);
+    end
+    trial_flags = ...
+        mouse_flags & ...
+        reward_flags;
+    x = data.trial.index.mouse(trial_flags);
+    X = [ones(size(x)),x];
+    y = data.lick.onset(trial_flags);
     nan_flags = isnan(y);
     betas = robustfit(x,y);
     plot(sps(mm),...
@@ -1402,6 +1480,62 @@ for mm = 1 : n_mice
         'linewidth',1);
 end
 
+%% reward delivery-aligned lick rasters
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','lick_delivery_rasters',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',trial_period,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    trial_flags = ...
+        mouse_flags;
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since CS onset (s)');
+    ylabel(sps(mm),'Trial #');
+    
+    % plot lick raster
+    lick_counts = data.lick.delivery(trial_flags,:);
+    nan_flags = isnan(lick_counts);
+    lick_counts(nan_flags) = 0;
+    lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
+    lick_rates(nan_flags) = nan;
+    [~,sorted_idcs] = sort(data.trial.cs(trial_flags));
+    imagesc(sps(mm),lick_trial_time,[],...
+        lick_rates(sorted_idcs,:),quantile(lick_rates,[.001,.999],'all')');
+
+    % plot reference lines
+    plot(sps(mm),xlim(sps(mm)),...
+        [1,1]*(sum(data.trial.cs(trial_flags)=='CS1')+.5),...
+        'color',[1,1,1],...
+        'linewidth',1.5);
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+    plot(sps(mm),[0,0]+cs_dur,ylim(sps(mm)),'--w');
+    plot(sps(mm),[0,0]+cs_dur+trace_dur,ylim(sps(mm)),'--w');
+end
+
 %% reward delivery-aligned lick rate (split by session)
 
 % figure initialization
@@ -1449,7 +1583,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.delivery(trial_flags,:);
+        lick_counts = data.lick.delivery(trial_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
@@ -1524,7 +1658,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.collection(trial_flags,:);
+        lick_counts = data.lick.collection(trial_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
@@ -1588,22 +1722,30 @@ for mm = 1 : n_mice
         mouse_flags & ...
         reward_flags;
     x = data.trial.index.mouse(trial_flags);
-    y_da_csplus = data.da.cs_response(trial_flags);
-    y_lick = data.licks.rate(trial_flags);
+    y_da = data.da.cs_response(trial_flags);
+    y_lick_rate = data.lick.rate(trial_flags);
+    y_lick_onset = data.lick.onset(trial_flags);
+        
+    % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    y_da = y_da - min(y_da);
+    y_lick_rate = y_lick_rate - min(y_lick_rate);
+    y_lick_onset = y_lick_onset - min(y_lick_onset);
     
     % normalization
     x = x ./ max(x);
-    y_da_csplus = cumsum(y_da_csplus,'omitnan') ./ nansum(y_da_csplus);
-    y_lick = cumsum(y_lick,'omitnan') ./ nansum(y_lick);
-    
+    y_da = cumsum(y_da,'omitnan') ./ nansum(y_da);
+    y_lick_rate = cumsum(y_lick_rate,'omitnan') ./ nansum(y_lick_rate);
+    y_lick_onset = cumsum(y_lick_onset,'omitnan') ./ nansum(y_lick_onset);
+
     % plot test 3 metrics
     plot(sps(mm),...
-        x,y_da_csplus,'-k',...
-        x,y_lick,'-r',...
+        x,y_da,'-k',...
+        x,y_lick_rate,'-r',...
+        x,y_lick_onset,'--r',...
         'linewidth',1.5);
 
     % pseudo-legend
-    text(sps(mm),-.225,.5,'Normalized cumulative anticipatory licking',...
+    text(sps(mm),-.225,.5,'Normalized cumulative lick rate',...
         'horizontalalignment','center',...
         'units','normalized',...
         'fontsize',14,...

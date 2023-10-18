@@ -186,8 +186,8 @@ for mm = 1 : n_mice
             
             % compute 'DA response' metric
             da_response(ii) = ...
-                nansum(da_reward_snippets(ii,:)) - ...
-                nansum(da_baseline_snippets(ii,:));
+                sum(da_reward_snippets(ii,:)) / range(reward_period) - ...
+                sum(da_baseline_snippets(ii,:)) / range(baseline_period);
         end
         
         %% organize session data into tables
@@ -258,7 +258,7 @@ for mm = 1 : n_mice
             'reward'...
             'iri',...
             'rt',...
-            'licks',...
+            'lick',...
             'ili',...
             'da',...
             });
@@ -1617,7 +1617,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.delivery(reward_flags,:);
+        lick_counts = data.lick.delivery(reward_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
@@ -1698,7 +1698,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.delivery(reward_flags,:);
+        lick_counts = data.lick.delivery(reward_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
@@ -1776,7 +1776,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.collection(reward_flags,:);
+        lick_counts = data.lick.collection(reward_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
@@ -1857,7 +1857,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.collection(reward_flags,:);
+        lick_counts = data.lick.collection(reward_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
