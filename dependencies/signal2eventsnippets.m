@@ -14,7 +14,6 @@ function [snippets,alignment_time] = signal2eventsnippets(...
 
     % iterate through events
     for ii = 1 : n_events
-        % progressreport(ii,n_events,'aligning');
         onset_time = event_times(ii) + alignment_window(1);
         offset_time = event_times(ii) + alignment_window(2);
         snippet_time = onset_time : delta_time : offset_time;
@@ -26,5 +25,11 @@ function [snippets,alignment_time] = signal2eventsnippets(...
             time < offset_time + delta_time / 2;
         snippets(ii,snippet_flags) = signal(time_flags);
     end
+    
+    % nanify overlapping snippets
+%     iei = diff([0;event_times]);
+%     valid_mask = ...
+%         alignment_time > -[inf;iei(1:end-1)] & ...
+%         alignment_time < iei;
+%     snippets(~valid_mask) = nan;
 end
-

@@ -11,10 +11,11 @@ data_dir = data_dir(cellfun(@(x)~contains(x,'.'),{data_dir.name}));
 
 %% mouse settings
 mouse_ids = {data_dir.name};
+mouse_ids = mouse_ids([6,2,3,4,5,1,7,8]);
 n_mice = numel(mouse_ids);
 
 %% experiment settings
-experiment_id = 'RandomRewards';
+experiment_id = 'randomrewards';
 
 %% acquisition settings
 fs = 120;
@@ -22,7 +23,6 @@ dt = 1 / fs;
 
 %% smoothing kernels
 lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
-% lickrate_kernel = expkernel('mu',1/3,'binwidth',dt);
 
 %% analysis parameters
 roi_period = [-4,8];
@@ -32,8 +32,7 @@ lick_period = roi_period + lickrate_kernel.paddx;
 
 %% selection criteria
 iri_cutoff = 3;
-rt_cutoffs = [.25,5];
-rt_cutoffs = [-inf,+inf];
+rt_cutoffs = [-inf,+inf]; % [.25,5];
 
 %% training stage settings
 n_stages = 3;
@@ -56,12 +55,18 @@ for mm = 1 : n_mice
     session_ids = session_ids(sorted_idcs);
     n_sessions = numel(session_ids);
     
+    % sort sessions chronologically
+    days = cellfun(@(x) sscanf(x,'Day%i'),session_ids);
+    [~,chrono_idcs] = sort(days);
+    session_ids = session_ids(chrono_idcs);
+    %     fprintf('\n%s: %i sessions\n',mouse_ids{mm},n_sessions);
+    
     % initialize mouse counters
     mouse_reward_counter = 0;
     
     % mouse-specific session selection
     if strcmpi(mouse_ids{mm},'HJ_FP_M2')
-        n_sessions = 7;
+%         n_sessions = 7;
     end
     
     % iterate through sessions
@@ -83,7 +88,7 @@ for mm = 1 : n_mice
         event_idcs = (1 : numel(event_labels))';
         start_idx = find(event_labels == 'reward',1);
         end_idx = find(event_labels == 'end');
-        session_dur = event_times(end_idx);
+        session_dur = event_times(end_idx) - event_times(start_idx);
         
         %% event selection
         valid_flags = ...
@@ -110,11 +115,10 @@ for mm = 1 : n_mice
         firstlick_idcs = sum(reward_times > firstlick_times',2) + 1;
         firstlick_times = firstlick_times(firstlick_idcs);
         n_firstlicks = sum(firstlick_flags);
-
+        
         %% compute inter-reward-intervals (IRI, nominal & actual)
         iri_nominal = diff([0;reward_times]);
-        iri_actual = diff([0;event_times(firstlick_flags)]);
-        iri_actual = iri_actual(firstlick_idcs);
+        iri_actual = diff([0;firstlick_times]);
         
         %% parse reaction time
         reaction_times = firstlick_times - reward_times;
@@ -133,16 +137,6 @@ for mm = 1 : n_mice
             lick_edges(1:end-1),lick_counts,reward_times,lick_period,dt);
         [lick_firstlick_snippets,lick_roi_time] = signal2eventsnippets(...
             lick_edges(1:end-1),lick_counts,firstlick_times,lick_period,dt);
-        
-        % nanify (maybe this should be moved inside??? the snippet fun???)
-        time_mat = ...
-            lick_roi_time > -[inf;diff(reward_times)] & ...
-            lick_roi_time < +[diff(reward_times);inf];
-        lick_reward_snippets(~time_mat) = nan;
-        time_mat = ...
-            lick_roi_time > -[inf;diff(firstlick_times)] & ...
-            lick_roi_time < +[diff(firstlick_times);inf];
-        lick_firstlick_snippets(~time_mat) = nan;
         
         %% compute inter-lick-intervals (ILI)
         ili_events = diff([nan;lick_times]);
@@ -164,16 +158,6 @@ for mm = 1 : n_mice
         [da_roi_snippets,da_roi_time] = signal2eventsnippets(...
             time,da,reward_times,roi_period,dt);
         
-        % nanify (maybe this should be moved inside??? the snippet fun???)
-%         time_mat = ...
-%             da_roi_time > -[inf;reaction_times(1:end-1)] & ...
-%             da_roi_time < reaction_times;
-%         da_roi_snippets(~time_mat) = nan;
-%         time_mat = ...
-%             da_reward_time > -[inf;reaction_times(1:end-1)] & ...
-%             da_reward_time < reaction_times * 0;
-%         da_reward_snippets(~time_mat) = nan;
-        
         % preallocation
         da_response = nan(n_rewards,1);
         
@@ -182,8 +166,8 @@ for mm = 1 : n_mice
             
             % compute 'DA response' metric
             da_response(ii) = ...
-                nansum(da_reward_snippets(ii,:)) - ...
-                nansum(da_baseline_snippets(ii,:));
+                sum(da_reward_snippets(ii,:)) / range(reward_period) - ...
+                sum(da_baseline_snippets(ii,:)) / range(baseline_period);
         end
         
         %% organize session data into tables
@@ -254,7 +238,7 @@ for mm = 1 : n_mice
             'reward'...
             'iri',...
             'rt',...
-            'licks',...
+            'lick',...
             'ili',...
             'da',...
             });
@@ -274,20 +258,24 @@ for mm = 1 : n_mice
     if mm == 1
         data = mouse_data;
     else
-        data = [data;mouse_data];
+        data = [data; mouse_data];
     end
 end
 
 %% reward selection criteria
-iri_flags = ...
+iri_nominal_flags = ...
     data.iri.nominal >= iri_cutoff & ...
     [data.iri.nominal(2:end); nan] >= iri_cutoff;
+iri_actual_flags = ...
+    data.iri.actual >= iri_cutoff & ...
+    [data.iri.actual(2:end); nan] >= iri_cutoff;
 rt_flags = ...
     data.rt >= rt_cutoffs(1) & ...
     data.rt <= rt_cutoffs(2);
 valid_flags = ...
     rt_flags & ...
-    iri_flags;
+    iri_nominal_flags & ...
+    iri_actual_flags;
 
 %% reaction time bin settings
 rt_binwidth = 1 / 15;
@@ -553,7 +541,7 @@ for mm = 1 : n_mice
     end
 end
 
-%% replot fig3E (test 1)
+%% plot test 1
 
 % figure initialization
 figure(...
@@ -630,7 +618,7 @@ for mm = 1 : n_mice
         'linewidth',1);
 end
 
-%% replot fig3G (test 2)
+%% plot test 2
 
 % IRI type selection
 iri_type = 'nominal';
@@ -1026,6 +1014,90 @@ for mm = 1 : n_mice
         'box','off');
 end
 
+%% reward delivery-aligned DA rasters
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','da_delivery_rasters',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',roi_period,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    reward_flags = ...
+        mouse_flags;
+    if sum(reward_flags) == 0
+        continue;
+    end
+    n_rewards = sum(reward_flags);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since reward delivery (s)');
+    ylabel(sps(mm),'Reward # (sorted chronologically)');
+    
+    % plot DA raster
+    da_mat = data.da.roi(reward_flags,:);
+    %     [~,sorted_idcs] = sort(data.rt(reward_flags));
+    sorted_idcs = 1 : n_rewards;
+    imagesc(sps(mm),da_roi_time,[],...
+        da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
+    
+    % plot reaction times
+    %     rts = data.rt(reward_flags);
+    %     plot(sps(mm),...
+    %         rts(sorted_idcs),1:n_rewards,...
+    %         'marker','o',...
+    %         'markersize',2,...
+    %         'markeredgecolor','w',...
+    %         'markerfacecolor','none',...
+    %         'linestyle','none');
+    
+    % iterate through sessions
+    counter = 0;
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        reward_flags = ...
+            mouse_flags & ...
+            session_flags;
+        prev_counter = counter;
+        counter = counter + sum(reward_flags);
+        
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+end
+
 %% reward delivery-aligned average DA (split by session)
 
 % figure initialization
@@ -1271,6 +1343,98 @@ for mm = 1 : n_mice
     legend(p,[{'early'},repmat({''},1,n_stages-2),{'late'}],...
         'location','northeast',...
         'box','off');
+end
+
+
+%% reward collection-aligned DA rasters
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','da_collection_rasters',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',[baseline_period(1),reward_period(2)],...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    reward_flags = ...
+        mouse_flags & ...
+        valid_flags;
+    if sum(reward_flags) == 0
+        continue;
+    end
+    n_rewards = sum(reward_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+%     ylabel(sps(mm),'Valid reward # (sorted chronologically)');
+%     ylabel(sps(mm),'Valid reward # (sorted by reaction time)');
+    ylabel(sps(mm),'Valid reward (sorted by w/in session reaction time) #');
+    
+    % plot DA raster
+    da_mat = [...
+        data.da.baseline(reward_flags,1:end-1),...
+        data.da.reward(reward_flags,:)];
+%     sorted_idcs = 1 : n_rewards;
+    %     [~,sorted_idcs] = sort(data.rt(reward_flags));
+    sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[2,1]);
+    da_time = unique([da_baseline_time,da_reward_time]);
+    imagesc(sps(mm),da_time,[],...
+        da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
+    
+    % plot reaction times
+    rts = -data.rt(reward_flags);
+    session_idcs = data.session(reward_flags);
+    scatter(sps(mm),...
+        rts(sorted_idcs),1:n_rewards,10,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+        
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        reward_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            valid_flags;
+        prev_counter = counter;
+        counter = counter + sum(reward_flags);
+
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
 end
 
 %% reward collection-aligned average DA (split by session)
@@ -1613,7 +1777,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.delivery(reward_flags,:);
+        lick_counts = data.lick.delivery(reward_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
@@ -1694,7 +1858,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.delivery(reward_flags,:);
+        lick_counts = data.lick.delivery(reward_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
@@ -1772,7 +1936,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.collection(reward_flags,:);
+        lick_counts = data.lick.collection(reward_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
@@ -1853,7 +2017,7 @@ for mm = 1 : n_mice
         end
         
         % fetch relevant events & ensure no overlaps
-        lick_counts = data.licks.collection(reward_flags,:);
+        lick_counts = data.lick.collection(reward_flags,:);
         nan_flags = isnan(lick_counts);
         lick_counts(nan_flags) = 0;
         lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
