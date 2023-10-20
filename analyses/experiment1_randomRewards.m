@@ -1,5 +1,5 @@
 %% initialization
-close all;
+% close all;
 clear;
 clc;
 
@@ -25,7 +25,7 @@ dt = 1 / fs;
 lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
 
 %% analysis parameters
-roi_period = [-4,8];
+roi_period = [-2,4];
 baseline_period = [-2,-.5];
 reward_period = [-.5,1];
 lick_period = roi_period + lickrate_kernel.paddx;
@@ -126,6 +126,10 @@ for mm = 1 : n_mice
         %% load photometry data
         photometry_path = fullfile(session_path,'Photometry.mat');
         load(photometry_path);
+        
+        % renormalization
+        f0 = abs(quantile(dff,.1));
+        dff = (dff - f0) ./ f0;
         
         %% parse licks
         lick_times = event_times(lick_flags);
@@ -1014,13 +1018,13 @@ for mm = 1 : n_mice
         'box','off');
 end
 
-%% reward delivery-aligned DA rasters
+%% reward delivery-aligned DA rasters (sorted chronologically)
 
 % figure initialization
 figure(...
     'windowstyle','docked',...
     'numbertitle','off',...
-    'name','da_delivery_rasters',...
+    'name','da_delivery_rasters_chronological',...
     'color','w');
 
 % axes initialization
@@ -1048,6 +1052,8 @@ for mm = 1 : n_mice
         continue;
     end
     n_rewards = sum(reward_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
     
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
@@ -1057,25 +1063,102 @@ for mm = 1 : n_mice
     
     % plot DA raster
     da_mat = data.da.roi(reward_flags,:);
-    %     [~,sorted_idcs] = sort(data.rt(reward_flags));
     sorted_idcs = 1 : n_rewards;
     imagesc(sps(mm),da_roi_time,[],...
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     
     % plot reaction times
-    %     rts = data.rt(reward_flags);
-    %     plot(sps(mm),...
-    %         rts(sorted_idcs),1:n_rewards,...
-    %         'marker','o',...
-    %         'markersize',2,...
-    %         'markeredgecolor','w',...
-    %         'markerfacecolor','none',...
-    %         'linestyle','none');
+    rts = data.rt(reward_flags);
+    session_idcs = data.session(reward_flags);
+    scatter(sps(mm),...
+        rts(sorted_idcs),1:n_rewards,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+        
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        reward_flags = ...
+            mouse_flags & ...
+            session_flags;
+        prev_counter = counter;
+        counter = counter + sum(reward_flags);
+        
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+end
+
+%% reward delivery-aligned DA rasters (sorted by reaction times)
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','da_delivery_rasters_reaction',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',roi_period,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    reward_flags = ...
+        mouse_flags;
+    if sum(reward_flags) == 0
+        continue;
+    end
+    n_rewards = sum(reward_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since reward delivery (s)');
+    ylabel(sps(mm),'Reward # (sorted by reaction time w/in session)');
+    
+    % plot DA raster
+    da_mat = data.da.roi(reward_flags,:);
+    sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[2,1]);
+    imagesc(sps(mm),da_roi_time,[],...
+        da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
+    
+    % plot reaction times
+    rts = data.rt(reward_flags);
+    session_idcs = data.session(reward_flags);
+    scatter(sps(mm),...
+        rts(sorted_idcs),1:n_rewards,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
     
     % iterate through sessions
     counter = 0;
-    n_sessions = max(data.session(mouse_flags));
-    session_clrs = cool(n_sessions);
     for ss = 1 : n_sessions
         session_flags = data.session == ss;
         reward_flags = ...
@@ -1345,14 +1428,13 @@ for mm = 1 : n_mice
         'box','off');
 end
 
-
-%% reward collection-aligned DA rasters
+%% reward collection-aligned DA rasters (sorted chronologically)
 
 % figure initialization
 figure(...
     'windowstyle','docked',...
     'numbertitle','off',...
-    'name','da_collection_rasters',...
+    'name','da_collection_rasters_chronological',...
     'color','w');
 
 % axes initialization
@@ -1388,16 +1470,99 @@ for mm = 1 : n_mice
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
-%     ylabel(sps(mm),'Valid reward # (sorted chronologically)');
-%     ylabel(sps(mm),'Valid reward # (sorted by reaction time)');
-    ylabel(sps(mm),'Valid reward (sorted by w/in session reaction time) #');
+    ylabel(sps(mm),'Valid reward (sorted chronologically) #');
     
     % plot DA raster
     da_mat = [...
         data.da.baseline(reward_flags,1:end-1),...
         data.da.reward(reward_flags,:)];
-%     sorted_idcs = 1 : n_rewards;
-    %     [~,sorted_idcs] = sort(data.rt(reward_flags));
+    sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,2);
+    da_time = unique([da_baseline_time,da_reward_time]);
+    imagesc(sps(mm),da_time,[],...
+        da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
+    
+    % plot reaction times
+    rts = -data.rt(reward_flags);
+    session_idcs = data.session(reward_flags);
+    scatter(sps(mm),...
+        rts(sorted_idcs),1:n_rewards,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+        
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        reward_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            valid_flags;
+        prev_counter = counter;
+        counter = counter + sum(reward_flags);
+
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+end
+
+%% reward collection-aligned DA rasters (sorted by reaction time)
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','da_collection_rasters_reaction',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',[baseline_period(1),reward_period(2)],...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    reward_flags = ...
+        mouse_flags & ...
+        valid_flags;
+    if sum(reward_flags) == 0
+        continue;
+    end
+    n_rewards = sum(reward_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    ylabel(sps(mm),'Valid reward (sorted by reaction time w/in session) #');
+    
+    % plot DA raster
+    da_mat = [...
+        data.da.baseline(reward_flags,1:end-1),...
+        data.da.reward(reward_flags,:)];
     sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
     [~,sorted_idcs] = sortrows(sorting_mat,[2,1]);
     da_time = unique([da_baseline_time,da_reward_time]);
@@ -1408,7 +1573,7 @@ for mm = 1 : n_mice
     rts = -data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,10,...
+        rts(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
         
