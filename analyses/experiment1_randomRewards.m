@@ -24,15 +24,15 @@ dt = 1 / fs;
 %% smoothing kernels
 lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
 
-%% analysis parameters
-roi_period = [-3,3];
-baseline_period = [-2,-.5];
-reward_period = [-.5,1];
-lick_period = roi_period + lickrate_kernel.paddx;
-
 %% selection criteria
 iri_cutoff = 3;
 rt_cutoffs = [-inf,+inf]; % [.25,5];
+
+%% analysis parameters
+roi_period = [-1,1] * iri_cutoff;
+baseline_period = [-2,-.5];
+reward_period = [-.5,1];
+lick_period = roi_period + lickrate_kernel.paddx;
 
 %% training stage settings
 n_stages = 3;
@@ -1128,7 +1128,8 @@ set(sps,...
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
     reward_flags = ...
-        mouse_flags;
+        mouse_flags & ...
+        valid_flags;
     if sum(reward_flags) == 0
         continue;
     end
@@ -1140,7 +1141,7 @@ for mm = 1 : n_mice
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since reward delivery (s)');
-    ylabel(sps(mm),'Reward # (sorted by reaction time)');
+    ylabel(sps(mm),'Valid reward # (sorted by reaction time)');
     
     % plot DA raster
     da_mat = data.da.roi(reward_flags,:);
@@ -1163,7 +1164,8 @@ for mm = 1 : n_mice
         session_flags = data.session == ss;
         reward_flags = ...
             mouse_flags & ...
-            session_flags;
+            session_flags & ...
+            valid_flags;
         prev_counter = counter;
         counter = counter + sum(reward_flags);
         
@@ -1924,7 +1926,8 @@ set(sps,...
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
     reward_flags = ...
-        mouse_flags;
+        mouse_flags & ...
+        valid_flags;
     n_rewards = sum(reward_flags);
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
@@ -1933,7 +1936,7 @@ for mm = 1 : n_mice
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since reward delivery (s)');
-    ylabel(sps(mm),'Reward # (sorted chronologically)');
+    ylabel(sps(mm),'Valid reward # (sorted chronologically)');
     
     % plot lick raster
     lick_counts = data.lick.delivery(reward_flags,:);
@@ -1960,7 +1963,8 @@ for mm = 1 : n_mice
         session_flags = data.session == ss;
         reward_flags = ...
             mouse_flags & ...
-            session_flags;
+            session_flags & ...
+            valid_flags;
         prev_counter = counter;
         counter = counter + sum(reward_flags);
         
@@ -2007,7 +2011,8 @@ set(sps,...
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
     reward_flags = ...
-        mouse_flags;
+        mouse_flags & ...
+        valid_flags;
     n_rewards = sum(reward_flags);
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
@@ -2016,7 +2021,7 @@ for mm = 1 : n_mice
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since reward delivery (s)');
-    ylabel(sps(mm),'Reward # (sorted by reaction time)');
+    ylabel(sps(mm),'Valid reward # (sorted by reaction time)');
     
     % plot lick raster
     lick_counts = data.lick.delivery(reward_flags,:);
@@ -2043,7 +2048,8 @@ for mm = 1 : n_mice
         session_flags = data.session == ss;
         reward_flags = ...
             mouse_flags & ...
-            session_flags;
+            session_flags & ...
+            valid_flags;
         prev_counter = counter;
         counter = counter + sum(reward_flags);
         
@@ -2260,7 +2266,7 @@ for mm = 1 : n_mice
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
-    ylabel(sps(mm),'Reward # (sorted chronologically)');
+    ylabel(sps(mm),'Valid reward # (sorted chronologically)');
     
     % plot lick raster
     lick_counts = data.lick.collection(reward_flags,:);
@@ -2345,7 +2351,7 @@ for mm = 1 : n_mice
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
-    ylabel(sps(mm),'Reward # (sorted by reaction time)');
+    ylabel(sps(mm),'Valid reward # (sorted by reaction time)');
     
     % plot lick raster
     lick_counts = data.lick.collection(reward_flags,:);
