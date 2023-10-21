@@ -715,7 +715,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Reaction time PDF');
     
     % iterate through sessions
@@ -1179,10 +1179,10 @@ for mm = 1 : n_mice
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     
     % plot reaction times
-    rts = data.rt(trial_flags);
+    reaction_times = data.rt(trial_flags);
     session_idcs = data.session(trial_flags);
     scatter(sps(mm),...
-        csus_delay+rts(sorted_idcs),1:n_trials,5,...
+        csus_delay+reaction_times(sorted_idcs),1:n_trials,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -1253,7 +1253,8 @@ set(sps,...
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
     trial_flags = ...
-        mouse_flags;
+        mouse_flags & ...
+        reward_flags;
     n_trials = sum(trial_flags);
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
@@ -1261,8 +1262,8 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since CS onset (s)');
-    ylabel(sps(mm),'Trial # (sorted by reaction time w/in CS)');
+    xlabel(sps(mm),'Time since CS+ onset (s)');
+    ylabel(sps(mm),'Trial # (sorted by reaction time)');
     
     % plot DA raster
     da_mat = data.da.trial(trial_flags,:);
@@ -1273,48 +1274,36 @@ for mm = 1 : n_mice
     [~,sorted_idcs] = sortrows(sorting_mat,[1,2,3]);
     imagesc(sps(mm),trial_period,[],...
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
-        
+    
     % plot reaction times
-    rts = data.rt(trial_flags);
+    reaction_times = data.rt(trial_flags);
     session_idcs = data.session(trial_flags);
     scatter(sps(mm),...
-        csus_delay+rts(sorted_idcs),1:n_trials,5,...
+        csus_delay+reaction_times(sorted_idcs),1:n_trials,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
-    % iterate through CS types
+    % iterate through sessions
     counter = 0;
-    cs_types = unique(data.trial.cs(mouse_flags));
-    n_cs_types = numel(cs_types);
-    for cc = 1 : n_cs_types
-        cs_flags = data.trial.cs == cs_types(cc);
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        trial_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            reward_flags;
+        prev_counter = counter;
+        counter = counter + sum(trial_flags);
         
-        % iterate through sessions
-        for ss = 1 : n_sessions
-            session_flags = data.session == ss;
-            trial_flags = ...
-                mouse_flags & ...
-                session_flags & ...
-                cs_flags;
-            prev_counter = counter;
-            counter = counter + sum(trial_flags);
-            
-            % plot session delimeters
-            plot(sps(mm),xlim(sps(mm)),...
-                [1,1]*(counter+.5),...
-                'color',[1,1,1]);
-            plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
-                [prev_counter,counter]+.5,...
-                'color',session_clrs(ss,:),...
-                'linewidth',5);
-        end
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
     end
     
-    % plot reference lines
-    plot(sps(mm),xlim(sps(mm)),...
-        [1,1]*(sum(data.trial.cs(mouse_flags)=='CS1')+.5),...
-        'color',[1,1,1],...
-        'linewidth',1.5);
     plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
     plot(sps(mm),[0,0]+cs_dur,ylim(sps(mm)),'--w');
     plot(sps(mm),[0,0]+cs_dur+trace_dur,ylim(sps(mm)),'--w');
@@ -1476,8 +1465,8 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
-    ylabel(sps(mm),'Reward # (sorted chronologically w/in CS)');
+    xlabel(sps(mm),'Time since reward collection (s)');
+    ylabel(sps(mm),'Reward # (sorted chronologically)');
     
     % plot DA raster
     da_mat = [...
@@ -1493,10 +1482,10 @@ for mm = 1 : n_mice
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     
     % plot reaction times
-    rts = -data.rt(trial_flags);
+    reaction_times = -data.rt(trial_flags);
     session_idcs = data.session(trial_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_trials,5,...
+        reaction_times(sorted_idcs),1:n_trials,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -1563,8 +1552,8 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
-    ylabel(sps(mm),'Reward # (sorted by reaction time w/in CS)');
+    xlabel(sps(mm),'Time since reward collection (s)');
+    ylabel(sps(mm),'Reward # (sorted by reaction time)');
     
     % plot DA raster
     da_mat = [...
@@ -1580,10 +1569,10 @@ for mm = 1 : n_mice
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     
     % plot reaction times
-    rts = -data.rt(trial_flags);
+    reaction_times = -data.rt(trial_flags);
     session_idcs = data.session(trial_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_trials,5,...
+        reaction_times(sorted_idcs),1:n_trials,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -1642,7 +1631,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'DA (\DeltaF/F)');
     
     % iterate through sessions
@@ -1749,13 +1738,13 @@ for mm = 1 : n_mice
         'linewidth',1);
 end
 
-%% reward delivery-aligned lick rasters
+%% reward delivery-aligned lick rasters (sorted chronologically)
 
 % figure initialization
 figure(...
     'windowstyle','docked',...
     'numbertitle','off',...
-    'name','lick_delivery_rasters',...
+    'name','lick_delivery_rasters_chronological',...
     'color','w');
 
 % axes initialization
@@ -1779,6 +1768,9 @@ for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
     trial_flags = ...
         mouse_flags;
+    n_trials = sum(trial_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
     
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
@@ -1792,10 +1784,30 @@ for mm = 1 : n_mice
     lick_counts(nan_flags) = 0;
     lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
     lick_rates(nan_flags) = nan;
-    [~,sorted_idcs] = sort(data.trial.cs(trial_flags));
+    sorting_mat = [...
+        double(data.trial.cs(trial_flags)),...
+        data.session(trial_flags),...
+        data.rt(trial_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[1,2]);
     imagesc(sps(mm),lick_trial_time,[],...
         lick_rates(sorted_idcs,:),quantile(lick_rates,[.001,.999],'all')');
-
+    
+    % plot lick onset times
+    lick_onset_times = data.lick.onset(trial_flags);
+    session_idcs = data.session(trial_flags);
+    scatter(sps(mm),...
+        lick_onset_times(sorted_idcs),1:n_trials,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % plot reaction times
+    reaction_times = data.rt(trial_flags);
+    session_idcs = data.session(trial_flags);
+    scatter(sps(mm),...
+        csus_delay+reaction_times(sorted_idcs),1:n_trials,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
     % iterate through CS types
     counter = 0;
     cs_types = unique(data.trial.cs(mouse_flags));
@@ -1804,8 +1816,6 @@ for mm = 1 : n_mice
         cs_flags = data.trial.cs == cs_types(cc);
         
         % iterate through sessions
-        n_sessions = max(data.session(mouse_flags));
-        session_clrs = cool(n_sessions);
         for ss = 1 : n_sessions
             session_flags = data.session == ss;
             trial_flags = ...
@@ -1831,6 +1841,202 @@ for mm = 1 : n_mice
         [1,1]*(sum(data.trial.cs(trial_flags)=='CS1')+.5),...
         'color',[1,1,1],...
         'linewidth',1.5);
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+    plot(sps(mm),[0,0]+cs_dur,ylim(sps(mm)),'--w');
+    plot(sps(mm),[0,0]+cs_dur+trace_dur,ylim(sps(mm)),'--w');
+end
+
+%% reward delivery-aligned lick rasters (sorted by reaction time)
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','lick_delivery_rasters_reaction',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',trial_period,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    trial_flags = ...
+        mouse_flags & ...
+        reward_flags;
+    n_trials = sum(trial_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since CS+ onset (s)');
+    ylabel(sps(mm),'Trial # (sorted by reaction time)');
+    
+    % plot lick raster
+    lick_counts = data.lick.delivery(trial_flags,:);
+    nan_flags = isnan(lick_counts);
+    lick_counts(nan_flags) = 0;
+    lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
+    lick_rates(nan_flags) = nan;
+    sorting_mat = [...
+        double(data.trial.cs(trial_flags)),...
+        data.session(trial_flags),...
+        data.rt(trial_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[1,2,3]);
+    imagesc(sps(mm),lick_trial_time,[],...
+        lick_rates(sorted_idcs,:),quantile(lick_rates,[.001,.999],'all')');
+    
+    % plot lick onset times
+    lick_onset_times = data.lick.onset(trial_flags);
+    session_idcs = data.session(trial_flags);
+    scatter(sps(mm),...
+        lick_onset_times(sorted_idcs),1:n_trials,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % plot reaction times
+    reaction_times = data.rt(trial_flags);
+    session_idcs = data.session(trial_flags);
+    scatter(sps(mm),...
+        csus_delay+reaction_times(sorted_idcs),1:n_trials,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        trial_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            reward_flags;
+        prev_counter = counter;
+        counter = counter + sum(trial_flags);
+        
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+    plot(sps(mm),[0,0]+cs_dur,ylim(sps(mm)),'--w');
+    plot(sps(mm),[0,0]+cs_dur+trace_dur,ylim(sps(mm)),'--w');
+end
+
+%% reward delivery-aligned lick rasters (sorted by lick onset time)
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','lick_delivery_rasters_lick',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',trial_period,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    trial_flags = ...
+        mouse_flags & ...
+        reward_flags;
+    n_trials = sum(trial_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since CS+ onset (s)');
+    ylabel(sps(mm),'Trial # (sorted by lick onset time)');
+    
+    % plot lick raster
+    lick_counts = data.lick.delivery(trial_flags,:);
+    nan_flags = isnan(lick_counts);
+    lick_counts(nan_flags) = 0;
+    lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
+    lick_rates(nan_flags) = nan;
+    sorting_mat = [...
+        double(data.trial.cs(trial_flags)),...
+        data.session(trial_flags),...
+        data.lick.onset(trial_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[1,2,3]);
+    imagesc(sps(mm),lick_trial_time,[],...
+        lick_rates(sorted_idcs,:),quantile(lick_rates,[.001,.999],'all')');
+    
+    % plot lick onset times
+    lick_onset_times = data.lick.onset(trial_flags);
+    session_idcs = data.session(trial_flags);
+    scatter(sps(mm),...
+        lick_onset_times(sorted_idcs),1:n_trials,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % plot reaction times
+    reaction_times = data.rt(trial_flags);
+    session_idcs = data.session(trial_flags);
+    scatter(sps(mm),...
+        csus_delay+reaction_times(sorted_idcs),1:n_trials,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        trial_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            reward_flags;
+        prev_counter = counter;
+        counter = counter + sum(trial_flags);
+        
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
     plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
     plot(sps(mm),[0,0]+cs_dur,ylim(sps(mm)),'--w');
     plot(sps(mm),[0,0]+cs_dur+trace_dur,ylim(sps(mm)),'--w');
@@ -1942,7 +2148,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Lick rate (Hz)');
     
     % iterate through sessions
@@ -2026,25 +2232,25 @@ for mm = 1 : n_mice
     y_da = data.da.cs_response(trial_flags);
     y_lick_rate = data.lick.rate(trial_flags);
     y_lick_onset = data.lick.onset(trial_flags);
-        
+    
     % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-%     y_da = y_da - min(y_da);
-%     y_lick_rate = y_lick_rate - min(y_lick_rate);
-%     y_lick_onset = y_lick_onset - min(y_lick_onset);
+    %     y_da = y_da - min(y_da);
+    %     y_lick_rate = y_lick_rate - min(y_lick_rate);
+    %     y_lick_onset = y_lick_onset - min(y_lick_onset);
     
     % normalization
     x = x ./ max(x);
     y_da = cumsum(y_da,'omitnan') ./ nansum(y_da);
     y_lick_rate = cumsum(y_lick_rate,'omitnan') ./ nansum(y_lick_rate);
     y_lick_onset = cumsum(y_lick_onset,'omitnan') ./ nansum(y_lick_onset);
-
+    
     % plot test 3 metrics
     plot(sps(mm),...
         x,y_da,'-k',...
         x,y_lick_rate,'-r',...
         x,y_lick_onset,'--r',...
         'linewidth',1.5);
-
+    
     % pseudo-legend
     text(sps(mm),-.225,.5,'Normalized cumulative lick rate',...
         'horizontalalignment','center',...
@@ -2052,7 +2258,7 @@ for mm = 1 : n_mice
         'fontsize',14,...
         'rotation',90,...
         'color','r');
-
+    
     % plot reference line
     plot(sps(mm),[0,1],[0,1],'--k');
 end

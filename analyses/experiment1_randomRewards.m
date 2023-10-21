@@ -890,7 +890,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),mouse_ids{mm},...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Reaction time PDF');
     
     % iterate through sessions
@@ -967,7 +967,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),mouse_ids{mm},...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Reaction time PDF');
     
     % compute stage boundaries
@@ -1065,10 +1065,10 @@ for mm = 1 : n_mice
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     
     % plot reaction times
-    rts = data.rt(reward_flags);
+    reaction_times = data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,5,...
+        reaction_times(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -1148,10 +1148,10 @@ for mm = 1 : n_mice
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     
     % plot reaction times
-    rts = data.rt(reward_flags);
+    reaction_times = data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,5,...
+        reaction_times(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -1468,7 +1468,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Valid reward (sorted chronologically) #');
     
     % plot DA raster
@@ -1482,10 +1482,10 @@ for mm = 1 : n_mice
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     
     % plot reaction times
-    rts = -data.rt(reward_flags);
+    reaction_times = -data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,5,...
+        reaction_times(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -1555,7 +1555,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Valid reward (sorted by reaction time) #');
     
     % plot DA raster
@@ -1569,10 +1569,10 @@ for mm = 1 : n_mice
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     
     % plot reaction times
-    rts = -data.rt(reward_flags);
+    reaction_times = -data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,5,...
+        reaction_times(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -1631,7 +1631,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),mouse_ids{mm},...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'DA (\DeltaF/F)');
     
     % iterate through sessions
@@ -1773,7 +1773,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),mouse_ids{mm},...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'DA (\DeltaF/F)');
     
     % compute quantile boundaries
@@ -1947,10 +1947,10 @@ for mm = 1 : n_mice
         lick_rates(sorted_idcs,:),[0,10]);
     
     % plot reaction times
-    rts = data.rt(reward_flags);
+    reaction_times = data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,5,...
+        reaction_times(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -2032,10 +2032,10 @@ for mm = 1 : n_mice
         lick_rates(sorted_idcs,:),[0,10]);
     
     % plot reaction times
-    rts = data.rt(reward_flags);
+    reaction_times = data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,5,...
+        reaction_times(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -2262,7 +2262,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Valid reward # (sorted chronologically)');
     
     % plot lick raster
@@ -2277,10 +2277,10 @@ for mm = 1 : n_mice
         lick_rates(sorted_idcs,:),[0,10]);
     
     % plot reaction times
-    rts = -data.rt(reward_flags);
+    reaction_times = -data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,5,...
+        reaction_times(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -2347,7 +2347,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Valid reward # (sorted by reaction time)');
     
     % plot lick raster
@@ -2362,10 +2362,10 @@ for mm = 1 : n_mice
         lick_rates(sorted_idcs,:),[0,10]);
     
     % plot reaction times
-    rts = -data.rt(reward_flags);
+    reaction_times = -data.rt(reward_flags);
     session_idcs = data.session(reward_flags);
     scatter(sps(mm),...
-        rts(sorted_idcs),1:n_rewards,5,...
+        reaction_times(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
     
@@ -2424,7 +2424,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),mouse_ids{mm},...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Lick rate (Hz)');
     
     % iterate through sessions
@@ -2501,7 +2501,7 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),mouse_ids{mm},...
         'interpreter','none');
-    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'Lick rate (Hz)');
     
     % compute quantile boundaries
