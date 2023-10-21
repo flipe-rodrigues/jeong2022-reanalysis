@@ -1,5 +1,5 @@
 %% initialization
-% close all;
+close all;
 clear;
 clc;
 
@@ -25,7 +25,7 @@ dt = 1 / fs;
 lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
 
 %% analysis parameters
-roi_period = [-2,4];
+roi_period = [-3,3];
 baseline_period = [-2,-.5];
 reward_period = [-.5,1];
 lick_period = roi_period + lickrate_kernel.paddx;
@@ -66,7 +66,7 @@ for mm = 1 : n_mice
     
     % mouse-specific session selection
     if strcmpi(mouse_ids{mm},'HJ_FP_M2')
-%         n_sessions = 7;
+        %         n_sessions = 7;
     end
     
     % iterate through sessions
@@ -137,7 +137,7 @@ for mm = 1 : n_mice
         lick_counts = histcounts(lick_times,lick_edges);
         
         % get lick-aligned snippets of lick counts
-        [lick_reward_snippets,~] = signal2eventsnippets(...
+        [lick_reward_snippets,lick_delivery_time] = signal2eventsnippets(...
             lick_edges(1:end-1),lick_counts,reward_times,lick_period,dt);
         [lick_firstlick_snippets,lick_roi_time] = signal2eventsnippets(...
             lick_edges(1:end-1),lick_counts,firstlick_times,lick_period,dt);
@@ -1074,7 +1074,7 @@ for mm = 1 : n_mice
         rts(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
-        
+    
     % iterate through sessions
     counter = 0;
     for ss = 1 : n_sessions
@@ -1140,7 +1140,7 @@ for mm = 1 : n_mice
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since reward delivery (s)');
-    ylabel(sps(mm),'Reward # (sorted by reaction time w/in session)');
+    ylabel(sps(mm),'Reward # (sorted by reaction time)');
     
     % plot DA raster
     da_mat = data.da.roi(reward_flags,:);
@@ -1489,7 +1489,7 @@ for mm = 1 : n_mice
         rts(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
-        
+    
     % iterate through sessions
     counter = 0;
     for ss = 1 : n_sessions
@@ -1500,7 +1500,7 @@ for mm = 1 : n_mice
             valid_flags;
         prev_counter = counter;
         counter = counter + sum(reward_flags);
-
+        
         % plot session delimeters
         plot(sps(mm),xlim(sps(mm)),...
             [1,1]*(counter+.5),...
@@ -1557,7 +1557,7 @@ for mm = 1 : n_mice
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
-    ylabel(sps(mm),'Valid reward (sorted by reaction time w/in session) #');
+    ylabel(sps(mm),'Valid reward (sorted by reaction time) #');
     
     % plot DA raster
     da_mat = [...
@@ -1576,7 +1576,7 @@ for mm = 1 : n_mice
         rts(sorted_idcs),1:n_rewards,5,...
         session_clrs(session_idcs(sorted_idcs),:),...
         'marker','.');
-        
+    
     % iterate through sessions
     counter = 0;
     for ss = 1 : n_sessions
@@ -1587,7 +1587,7 @@ for mm = 1 : n_mice
             valid_flags;
         prev_counter = counter;
         counter = counter + sum(reward_flags);
-
+        
         % plot session delimeters
         plot(sps(mm),xlim(sps(mm)),...
             [1,1]*(counter+.5),...
@@ -1895,6 +1895,172 @@ for mm = 1 : n_mice
         'linewidth',1);
 end
 
+%% reward delivery-aligned lick rasters (sorted chronologically)
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','lick_delivery_rasters_chronological',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',roi_period,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    reward_flags = ...
+        mouse_flags;
+    n_rewards = sum(reward_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since reward delivery (s)');
+    ylabel(sps(mm),'Reward # (sorted chronologically)');
+    
+    % plot lick raster
+    lick_counts = data.lick.delivery(reward_flags,:);
+    nan_flags = isnan(lick_counts);
+    lick_counts(nan_flags) = 0;
+    lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
+    lick_rates(nan_flags) = nan;
+    sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[2]);
+    imagesc(sps(mm),lick_delivery_time,[],...
+        lick_rates(sorted_idcs,:),[0,10]);
+    
+    % plot reaction times
+    rts = data.rt(reward_flags);
+    session_idcs = data.session(reward_flags);
+    scatter(sps(mm),...
+        rts(sorted_idcs),1:n_rewards,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        reward_flags = ...
+            mouse_flags & ...
+            session_flags;
+        prev_counter = counter;
+        counter = counter + sum(reward_flags);
+        
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+end
+
+%% reward delivery-aligned lick rasters (sorted by reaction time)
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','lick_delivery_rasters_reaction',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',roi_period,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    reward_flags = ...
+        mouse_flags;
+    n_rewards = sum(reward_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since reward delivery (s)');
+    ylabel(sps(mm),'Reward # (sorted by reaction time)');
+    
+    % plot lick raster
+    lick_counts = data.lick.delivery(reward_flags,:);
+    nan_flags = isnan(lick_counts);
+    lick_counts(nan_flags) = 0;
+    lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
+    lick_rates(nan_flags) = nan;
+    sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[2,1]);
+    imagesc(sps(mm),lick_delivery_time,[],...
+        lick_rates(sorted_idcs,:),[0,10]);
+    
+    % plot reaction times
+    rts = data.rt(reward_flags);
+    session_idcs = data.session(reward_flags);
+    scatter(sps(mm),...
+        rts(sorted_idcs),1:n_rewards,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        reward_flags = ...
+            mouse_flags & ...
+            session_flags;
+        prev_counter = counter;
+        counter = counter + sum(reward_flags);
+        
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+end
+
 %% reward delivery-aligned lick rate (split by session)
 
 % figure initialization
@@ -2052,6 +2218,177 @@ for mm = 1 : n_mice
     % legend
     legend(p,[{'early'},repmat({''},1,n_stages-2),{'late'}],...
         'box','off');
+end
+
+
+%% reward collection-aligned lick rasters (sorted chronologically)
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','lick_collection_rasters_chronological',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',lick_period-lickrate_kernel.paddx,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    reward_flags = ...
+        mouse_flags & ...
+        valid_flags;
+    n_rewards = sum(reward_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    ylabel(sps(mm),'Reward # (sorted chronologically)');
+    
+    % plot lick raster
+    lick_counts = data.lick.collection(reward_flags,:);
+    nan_flags = isnan(lick_counts);
+    lick_counts(nan_flags) = 0;
+    lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
+    lick_rates(nan_flags) = nan;
+    sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[2]);
+    imagesc(sps(mm),lick_roi_time,[],...
+        lick_rates(sorted_idcs,:),[0,10]);
+    
+    % plot reaction times
+    rts = -data.rt(reward_flags);
+    session_idcs = data.session(reward_flags);
+    scatter(sps(mm),...
+        rts(sorted_idcs),1:n_rewards,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        reward_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            valid_flags;
+        prev_counter = counter;
+        counter = counter + sum(reward_flags);
+        
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
+end
+
+%% reward collection-aligned lick rasters (sorted by reaction time)
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name','lick_collection_rasters_reaction',...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(ceil(n_mice/4),ceil(n_mice/2),ii);
+end
+set(sps,...
+    'xlim',lick_period-lickrate_kernel.paddx,...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'colormap',bone(2^8-1),...
+    'linewidth',2,...
+    'fontsize',12,...
+    'layer','top',...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    reward_flags = ...
+        mouse_flags & ...
+        valid_flags;
+    n_rewards = sum(reward_flags);
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    
+    % axes labels
+    title(sps(mm),sprintf('%s',mouse_ids{mm}),...
+        'interpreter','none');
+    xlabel(sps(mm),'Time since 1^{st} rewarding lick (s)');
+    ylabel(sps(mm),'Reward # (sorted by reaction time)');
+    
+    % plot lick raster
+    lick_counts = data.lick.collection(reward_flags,:);
+    nan_flags = isnan(lick_counts);
+    lick_counts(nan_flags) = 0;
+    lick_rates = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
+    lick_rates(nan_flags) = nan;
+    sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[2,1]);
+    imagesc(sps(mm),lick_roi_time,[],...
+        lick_rates(sorted_idcs,:),[0,10]);
+    
+    % plot reaction times
+    rts = -data.rt(reward_flags);
+    session_idcs = data.session(reward_flags);
+    scatter(sps(mm),...
+        rts(sorted_idcs),1:n_rewards,5,...
+        session_clrs(session_idcs(sorted_idcs),:),...
+        'marker','.');
+    
+    % iterate through sessions
+    counter = 0;
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        reward_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            valid_flags;
+        prev_counter = counter;
+        counter = counter + sum(reward_flags);
+        
+        % plot session delimeters
+        plot(sps(mm),xlim(sps(mm)),...
+            [1,1]*(counter+.5),...
+            'color',[1,1,1]);
+        plot(sps(mm),[1,1]*min(xlim(sps(mm)))+.015*range(xlim(sps(mm))),...
+            [prev_counter,counter]+.5,...
+            'color',session_clrs(ss,:),...
+            'linewidth',5);
+    end
+    
+    % plot reference lines
+    plot(sps(mm),[0,0],ylim(sps(mm)),'--w');
 end
 
 %% reward collection-aligned lick rate (split by session)
