@@ -26,7 +26,8 @@ lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
 
 %% selection criteria
 iri_cutoff = 3;
-rt_cutoffs = [-inf,+inf]; % [.25,5];
+% rt_cutoffs = [-inf,+inf];
+rt_cutoffs = [-inf,10];
 
 %% analysis parameters
 roi_period = [-1,1] * iri_cutoff;
@@ -59,16 +60,10 @@ for mm = 1 : n_mice
     days = cellfun(@(x) sscanf(x,'Day%i'),session_ids);
     [~,chrono_idcs] = sort(days);
     session_ids = session_ids(chrono_idcs);
-    %     fprintf('\n%s: %i sessions\n',mouse_ids{mm},n_sessions);
     
     % initialize mouse counters
     mouse_reward_counter = 0;
-    
-    % mouse-specific session selection
-    if strcmpi(mouse_ids{mm},'HJ_FP_M2')
-        %         n_sessions = 7;
-    end
-    
+
     % iterate through sessions
     for ss = 1 : n_sessions
         progressreport(ss,n_sessions,sprintf(...
@@ -128,8 +123,8 @@ for mm = 1 : n_mice
         load(photometry_path);
         
         % renormalization
-        f0 = abs(quantile(dff,.1));
-        dff = (dff - f0) ./ f0;
+%         f0 = abs(quantile(dff,.1));
+%         dff = (dff - f0) ./ f0;
         
         %% parse licks
         lick_times = event_times(lick_flags);
@@ -273,13 +268,15 @@ iri_nominal_flags = ...
 iri_actual_flags = ...
     data.iri.actual >= iri_cutoff & ...
     [data.iri.actual(2:end); nan] >= iri_cutoff;
+iri_flags = ...
+    iri_nominal_flags & ...
+    iri_actual_flags;
 rt_flags = ...
     data.rt >= rt_cutoffs(1) & ...
     data.rt <= rt_cutoffs(2);
 valid_flags = ...
     rt_flags & ...
-    iri_nominal_flags & ...
-    iri_actual_flags;
+    iri_flags;
 
 %% reaction time bin settings
 rt_binwidth = 1 / 15;
