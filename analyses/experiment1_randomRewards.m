@@ -1944,7 +1944,7 @@ for mm = 1 : n_mice
     sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
     [~,sorted_idcs] = sortrows(sorting_mat,[2]);
     imagesc(sps(mm),lick_delivery_time,[],...
-        lick_rates(sorted_idcs,:),[0,10]);
+        lick_rates(sorted_idcs,:),[0,7.5]);
     
     % plot reaction times
     reaction_times = data.rt(reward_flags);
@@ -2029,7 +2029,7 @@ for mm = 1 : n_mice
     sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
     [~,sorted_idcs] = sortrows(sorting_mat,[2,1]);
     imagesc(sps(mm),lick_delivery_time,[],...
-        lick_rates(sorted_idcs,:),[0,10]);
+        lick_rates(sorted_idcs,:),[0,7.5]);
     
     % plot reaction times
     reaction_times = data.rt(reward_flags);
@@ -2274,7 +2274,7 @@ for mm = 1 : n_mice
     sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
     [~,sorted_idcs] = sortrows(sorting_mat,[2]);
     imagesc(sps(mm),lick_roi_time,[],...
-        lick_rates(sorted_idcs,:),[0,10]);
+        lick_rates(sorted_idcs,:),[0,7.5]);
     
     % plot reaction times
     reaction_times = -data.rt(reward_flags);
@@ -2359,7 +2359,7 @@ for mm = 1 : n_mice
     sorting_mat = [data.rt(reward_flags),data.session(reward_flags)];
     [~,sorted_idcs] = sortrows(sorting_mat,[2,1]);
     imagesc(sps(mm),lick_roi_time,[],...
-        lick_rates(sorted_idcs,:),[0,10]);
+        lick_rates(sorted_idcs,:),[0,7.5]);
     
     % plot reaction times
     reaction_times = -data.rt(reward_flags);
