@@ -9,7 +9,7 @@ data_path = fullfile(root_path,'data');
 data_dir = dir(data_path);
 data_dir = data_dir(cellfun(@(x)~contains(x,'.'),{data_dir.name}));
 save_path = fullfile(root_path,'figures');
-want2save = true;
+want2save = false;
 
 %% normalization settings
 want2renormalize = true;
