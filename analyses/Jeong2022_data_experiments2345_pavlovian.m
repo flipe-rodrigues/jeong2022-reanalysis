@@ -1,17 +1,7 @@
-%% initialization
-close all;
-clear;
-clc;
-
-%% directory settings
-root_path = fileparts(pwd);
-data_path = fullfile(root_path,'data');
-data_dir = dir(data_path);
-data_dir = data_dir(cellfun(@(x)~contains(x,'.'),{data_dir.name}));
+%% preface
+Jeong2022_data_preface;
 
 %% mouse settings
-mouse_ids = {data_dir.name};
-mouse_ids = mouse_ids([6,2,3,4,5,1,7,8]);
 mouse_ids = mouse_ids(~ismember(mouse_ids,'HJ_FP_M8'));
 n_mice = numel(mouse_ids);
 
@@ -25,13 +15,6 @@ n_subexperiments = numel(subexperiment_ids);
 trace_dur = 1;
 cs_dur_set = [2,8];
 csus_delay_set = cs_dur_set + trace_dur;
-
-%% acquisition settings
-fs = 120;
-dt = 1 / fs;
-
-%% smoothing kernels
-lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
 
 %% analysis parameters
 trial_period = [0,max(csus_delay_set)] + [-2,4];
@@ -49,11 +32,11 @@ for mm = 1 : n_mice
     
     % parse mouse directory
     mouse_path = fullfile(data_path,mouse_ids{mm},experiment_id);
-            
+    
     % initialize mouse counters
     mouse_session_idx = 1;
     mouse_trial_counter = 0;
-        
+    
     % iterate through sub-experiments
     for ee = 1 : n_subexperiments
         subexperiment_id = subexperiment_ids{ee};
@@ -171,8 +154,10 @@ for mm = 1 : n_mice
             load(photometry_path);
             
             % renormalization
-            f0 = abs(quantile(dff,.1));
-            dff = (dff - f0) ./ f0;
+            if want2renormalize
+                f0 = abs(quantile(dff,.1));
+                dff = (dff - f0) ./ f0;
+            end
             
             %% parse licks
             lick_times = event_times(lick_flags);
@@ -181,7 +166,7 @@ for mm = 1 : n_mice
             
             % get lick-aligned snippets of lick counts
             [lick_anticipatory_snippets,lick_anticipatory_time] = signal2eventsnippets(...
-                lick_edges(1:end-1),lick_counts,cs_times,[0,csus_delay_set(ee)],dt);
+                lick_edges(1:end-1),lick_counts,cs_times,[0,csus_delay_set(end)],dt);
             [lick_trial_snippets,lick_trial_time] = signal2eventsnippets(...
                 lick_edges(1:end-1),lick_counts,cs_times,lick_period,dt);
             [lick_reward_snippets,lick_reward_time] = signal2eventsnippets(...
@@ -1255,7 +1240,7 @@ for mm = 1 : n_mice
                 [dur_prev_counter,dur_counter]+.5,'--w');
         end
     end
-
+    
     % plot reference lines
     plot(sps(mm),xlim(sps(mm)),...
         [1,1]*(sum(data.trial.cs.label(mouse_flags)=='CS1')+.5),...
@@ -1299,25 +1284,25 @@ for mm = 1 : n_mice
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
     % figure initialization
-figure(...
-    'windowstyle','docked',...
-    'numbertitle','off',...
-    'name','da_delivery_rasters_reaction',...
-    'color','w');
-
-% axes initialization
-sps(mm) = subplot(1,1,1);
-set(sps,...
-    'xlim',trial_period,...
-    'ylimspec','tight',...
-    'xscale','linear',...
-    'nextplot','add',...
-    'colormap',bone(2^8-1),...
-    'linewidth',2,...
-    'fontsize',12,...
-    'layer','top',...
-    'tickdir','out');
-
+    figure(...
+        'windowstyle','docked',...
+        'numbertitle','off',...
+        'name','da_delivery_rasters_reaction',...
+        'color','w');
+    
+    % axes initialization
+    sps(mm) = subplot(1,1,1);
+    set(sps,...
+        'xlim',trial_period,...
+        'ylimspec','tight',...
+        'xscale','linear',...
+        'nextplot','add',...
+        'colormap',bone(2^8-1),...
+        'linewidth',2,...
+        'fontsize',12,...
+        'layer','top',...
+        'tickdir','out');
+    
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
@@ -1374,7 +1359,7 @@ set(sps,...
             reward_flags;
         prev_counter = counter;
         counter = counter + sum(trial_flags);
-
+        
         % plot reference lines
         plot(sps(mm),...
             [0,0]+unique(data.trial.cs.dur(trial_flags),'rows'),...
@@ -1935,7 +1920,7 @@ for mm = 1 : n_mice
                 [dur_prev_counter,dur_counter]+.5,'--w');
         end
     end
-
+    
     % plot reference lines
     plot(sps(mm),xlim(sps(mm)),...
         [1,1]*(sum(data.trial.cs.label(mouse_flags)=='CS1')+.5),...
@@ -1978,6 +1963,25 @@ for mm = 1 : n_mice
     n_trials = sum(trial_flags);
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
+        % figure initialization
+    figure(...
+        'windowstyle','docked',...
+        'numbertitle','off',...
+        'name','da_delivery_rasters_reaction',...
+        'color','w');
+    
+    % axes initialization
+    sps(mm) = subplot(1,1,1);
+    set(sps,...
+        'xlim',trial_period,...
+        'ylimspec','tight',...
+        'xscale','linear',...
+        'nextplot','add',...
+        'colormap',bone(2^8-1),...
+        'linewidth',2,...
+        'fontsize',12,...
+        'layer','top',...
+        'tickdir','out');
     
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
@@ -2047,7 +2051,7 @@ for mm = 1 : n_mice
             reward_flags;
         prev_counter = counter;
         counter = counter + sum(trial_flags);
-
+        
         % plot reference lines
         plot(sps(mm),...
             [0,0]+unique(data.trial.cs.dur(trial_flags),'rows'),...
@@ -2251,8 +2255,8 @@ for mm = 1 : n_mice
     y_lick = data.lick.onset(trial_flags);
     
     % !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-%     y_da = y_da - min(y_da);
-%     y_lick = y_lick - min(y_lick);
+    %     y_da = y_da - min(y_da);
+    %     y_lick = y_lick - min(y_lick);
     
     % normalization
     x = x ./ max(x);
@@ -2321,7 +2325,7 @@ for mm = 1 : n_mice
     % normalization
     x = x;% ./ max(x);
     y_da = cumsum(y_da,'omitnan');% ./ nansum(y_da);
-
+    
     % plot test 5 metrics
     plot(sps(mm),...
         x,y_da,'-k',...
