@@ -1743,7 +1743,7 @@ end
 set(sps,...
     'xlim',reward_period+csus_delay_set(1),...
     'xlim',trial_period,...
-    'xtick',sort([0,cs_dur_set,csus_delay_set]),...
+    'xtick',unique([0,cs_dur_set,csus_delay_set]),...
     'ylimspec','tight',...
     'xscale','linear',...
     'nextplot','add',...
@@ -2325,7 +2325,16 @@ for mm = 1 : n_mice
     plot(sps(mm),xlim(sps(mm)),[0,0],'--k');
 end
 
-%% plot test 2
+
+
+
+
+
+
+
+
+
+%% IRI vs CS response
 
 % IRI type selection
 iri_type = 'nominal';
