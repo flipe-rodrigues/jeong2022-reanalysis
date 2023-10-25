@@ -10,14 +10,18 @@ experiment_id = 'pavlovian';
 subexperiment_ids = {...
     'acquisition',...
     'extension',...
+    'background',...
     };
 n_subexperiments = numel(subexperiment_ids);
 trace_dur = 1;
-cs_dur_set = [2,8];
+cs_dur_set = [2,8,8];
 csus_delay_set = cs_dur_set + trace_dur;
 
+%% background reward settings
+bg_min_delay = 6;
+
 %% analysis parameters
-trial_period = [0,max(csus_delay_set)] + [-2,3];
+trial_period = [0,max(csus_delay_set)] + [-2,3] * bg_min_delay;
 reward_period = [-2,2];
 baseline_period = [-1,0];
 roi_period = [0,2];
@@ -39,7 +43,7 @@ for mm = 1 : n_mice
         subexperiment_id = subexperiment_ids{ee};
         mouse_dir = dir([mouse_path,filesep,'*',subexperiment_id]);
         mouse_dir = mouse_dir(cellfun(@(x)~contains(x,'.'),{mouse_dir.name}));
-        
+
         % parse session directory
         session_ids = {mouse_dir.name};
         session_days = cellfun(@(x)str2double(strrep(x,'Day','')),session_ids);
@@ -49,6 +53,9 @@ for mm = 1 : n_mice
         [~,chrono_idcs] = sort(days);
         session_ids = session_ids(chrono_idcs);
         n_sessions = numel(session_ids);
+                
+        % initialize mouse counters
+        experiment_trial_counter = 0;
         
         % iterate through sessions
         for ss = 1 : n_sessions
@@ -185,8 +192,8 @@ for mm = 1 : n_mice
                 
                 % compute 'lick rate' metric
                 lick_rate(ii) = ...
-                    sum(lick_cs_snippets(ii,:)) / range(roi_period) - ...
-                    sum(lick_baseline_snippets(ii,:)) / range(baseline_period);
+                    sum(lick_cs_snippets(ii,:) * dt) / range(roi_period) - ...
+                    sum(lick_baseline_snippets(ii,:) * dt) / range(baseline_period);
                 
                 % compute 'median lick onset time' metric
                 lick_cdf = cumsum(lick_anticipatory_snippets(ii,:));
@@ -232,21 +239,44 @@ for mm = 1 : n_mice
                 
                 % compute 'DA response' metric
                 da_cs_response(ii) = ...
-                    sum(da_cs_roi_snippets(ii,:)) / range(roi_period) - ...
-                    sum(da_cs_baseline_snippets(ii,:)) / range(baseline_period);
+                    sum(da_cs_roi_snippets(ii,:) * dt) / range(roi_period) - ...
+                    sum(da_cs_baseline_snippets(ii,:) * dt) / range(baseline_period);
                 da_initial_us_response(ii) = ...
-                    sum(da_us_roi_snippets(ii,:)) / range(roi_period) - ...
-                    sum(da_cs_baseline_snippets(ii,:)) / range(baseline_period);
+                    sum(da_us_roi_snippets(ii,:) * dt) / range(roi_period) - ...
+                    sum(da_cs_baseline_snippets(ii,:) * dt) / range(baseline_period);
             end
+            
+            %% parse background rewards
+%             bg_flags = event_labels == 'bg_rwd';
+%             bg_times = event_times(bg_flags);
+%             
+%             % get event-aligned snippets of DA
+%             [da_bg_snippets,da_bg_time] = signal2eventsnippets(...
+%                 time,da,bg_times,[baseline_period(1),roi_period(2)],dt);
+%             
+%             % nanify (maybe this should be moved inside??? the snippet fun???)
+%             inter_bg_intervals = diff([0;bg_times]);
+%             time_mat = ...
+%                 da_bg_time > -[inf;inter_bg_intervals(1:end-1)] & ...
+%                 da_bg_time < inter_bg_intervals;
+%             da_bg_snippets(~time_mat) = nan;
+%             
+%             % assign background rewards to each trial
+%             bg_idcs = sum(bg_times > cs_times',2);
+%             da_bg_snippets_trials = arrayfun(...
+%                 @(x)da_bg_snippets(bg_idcs == x,:),trial_idcs,...
+%                 'uniformoutput',false);
             
             %% organize session data into tables
             
             % construct trial table
             index_table = table(...
                 trial_idcs + mouse_trial_counter,...
+                trial_idcs + experiment_trial_counter,...
                 trial_idcs,...
                 'variablenames',{...
                 'mouse',...
+                'experiment',...
                 'session',...
                 });
             
@@ -351,6 +381,7 @@ for mm = 1 : n_mice
             % increment mouse counters
             mouse_session_idx = mouse_session_idx + 1;
             mouse_trial_counter = mouse_trial_counter + n_trials;
+            experiment_trial_counter = experiment_trial_counter + n_trials;
         end
     end
     
@@ -372,6 +403,7 @@ reward_flags = ~isnan(data.trial.time.reward);
 
 %% flag acquisition trials
 acquisition_flags = data.experiment == 'acquisition';
+extension_flags = data.experiment == 'extension';
 
 %% CS onset-aligned DA & lick rasters (sorted chronologically)
 
@@ -488,7 +520,8 @@ for mm = 1 : n_mice
                 % plot session delimeters
                 plot(sps(ii),xlim(sps(ii)),...
                     [1,1]*(type_counter+.5),...
-                    'color',[1,1,1]);
+                    'color',[1,1,1],...
+                    'linestyle',':');
                 plot(sps(ii),[1,1]*min(xlim(sps(ii)))+.01*range(xlim(sps(ii))),...
                     [type_prev_counter,type_counter]+.5,...
                     'color',session_clrs(ss,:),...
@@ -497,11 +530,11 @@ for mm = 1 : n_mice
             
             % iterate through sub-experiments
             for ee = 1 : n_subexperiments
-                cs_dur_flags = data.trial.cs.dur == cs_dur_set(ee);
+                experiment_flags = data.experiment == subexperiment_ids{ee};
                 trial_flags = ...
                     mouse_flags & ...
                     cs_type_flags & ...
-                    cs_dur_flags;
+                    experiment_flags;
                 dur_prev_counter = dur_counter;
                 dur_counter = dur_counter + sum(trial_flags);
                 
@@ -512,6 +545,9 @@ for mm = 1 : n_mice
                 plot(sps(ii),...
                     [0,0]+unique(data.trial.cs.dur(trial_flags)+trace_dur,'rows'),...
                     [dur_prev_counter,dur_counter]+.5,'--w');
+                plot(sps(ii),xlim(sps(ii)),...
+                    [1,1]*(dur_counter+.5),...
+                    'color',[1,1,1]);
             end
         end
         
@@ -1690,7 +1726,7 @@ for mm = 1 : n_mice
         'linewidth',1);
 end
 
-%% initial US-aligned average DA (split by session)
+%% initial US-aligned average DA (split by stage within experiment)
 
 % figure initialization
 figure(...
@@ -1706,12 +1742,18 @@ for ii = 1 : n_mice
 end
 set(sps,...
     'xlim',reward_period+csus_delay_set(1),...
+    'xlim',trial_period,...
+    'xtick',sort([0,cs_dur_set,csus_delay_set]),...
     'ylimspec','tight',...
     'xscale','linear',...
     'nextplot','add',...
     'linewidth',2,...
     'fontsize',12,...
     'tickdir','out');
+
+% training stage settings
+n_stages = 15;
+stage_clrs = colorlerp([[.85,.05,.25];[0,0,0]],n_stages);
 
 % iterate through mice
 for mm = 1 : n_mice
@@ -1720,36 +1762,48 @@ for mm = 1 : n_mice
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
-    xlabel(sps(mm),'Time since initial US time (s)');
+    xlabel(sps(mm),'Time since CS onset (s)');
     ylabel(sps(mm),'DA (\DeltaF/F)');
     
     % iterate through sessions
-    n_sessions = max(data.session(mouse_flags));
-    session_clrs = cool(n_sessions);
-    for ss = 1 : n_sessions
-        session_flags = data.session == ss;
+    session_idcs = unique(data.session(mouse_flags & extension_flags));
+    session_flags = data.session <= session_idcs(3);
+    n_trials = sum(mouse_flags & extension_flags & session_flags);
+    
+    % compute stage boundaries
+    stage_boundaries = floor(linspace(0,n_trials,n_stages+1));
+    stage_boundaries(n_stages) = stage_boundaries(2);
+    
+    % iterate through stages
+    for ss = [1,n_stages]
+        stage_flags = ...
+            data.trial.index.experiment > stage_boundaries(ss) & ...
+            data.trial.index.experiment <= stage_boundaries(ss+1);
         trial_flags = ...
             mouse_flags & ...
-            session_flags;
-        if sum(trial_flags) == 0
-            continue;
-        end
+            extension_flags & ...
+            ...session_flags & ...
+            stage_flags & ...
+            reward_flags;
+        trial_idcs = find(trial_flags);
+        
+        % plot average DA response
         da_mat = data.da.trial(trial_flags,:);
         da_mu = nanmean(da_mat,1);
         da_std = nanstd(da_mat,0,1);
-        da_sem = da_std ./ sqrt(sum(trial_flags));
+        da_sem = da_std ./ sqrt(size(da_mat,1));
         nan_flags = isnan(da_mu) | isnan(isnan(da_sem)) | da_sem == 0;
         xpatch = [da_trial_time(~nan_flags),...
             fliplr(da_trial_time(~nan_flags))];
         ypatch = [da_mu(~nan_flags)-da_sem(~nan_flags),...
             fliplr(da_mu(~nan_flags)+da_sem(~nan_flags))];
         patch(sps(mm),...
-            xpatch,ypatch,session_clrs(ss,:),...
+            xpatch,ypatch,stage_clrs(ss,:),...
             'edgecolor','none',...
             'facealpha',.25);
         plot(sps(mm),...
             da_trial_time(~nan_flags),da_mu(~nan_flags),'-',...
-            'color',session_clrs(ss,:),...
+            'color',stage_clrs(ss,:),...
             'linewidth',1);
     end
     
@@ -1757,7 +1811,7 @@ for mm = 1 : n_mice
     yylim = ylim(sps(mm));
     yymax = max(yylim) * 1.1;
     patch(sps(mm),...
-        [baseline_period,fliplr(baseline_period)]+csus_delay_set(1),...
+        [baseline_period,fliplr(baseline_period)],...
         [-1,-1,1,1]*range(yylim)*.02+yymax,'w',...
         'edgecolor','k',...
         'facealpha',1,...
@@ -2251,7 +2305,7 @@ for mm = 1 : n_mice
     trial_flags = ...
         mouse_flags & ...
         reward_flags & ...
-        ~acquisition_flags;
+        extension_flags;
     x = 1:sum(trial_flags);
     y_da = data.da.initial_us_response(trial_flags);
     
@@ -2269,4 +2323,90 @@ for mm = 1 : n_mice
     
     % plot reference line
     plot(sps(mm),xlim(sps(mm)),[0,0],'--k');
+end
+
+%% plot test 2
+
+% IRI type selection
+iri_type = 'nominal';
+% iri_type = 'actual';
+
+% figure initialization
+figure(...
+    'windowstyle','docked',...
+    'numbertitle','off',...
+    'name',sprintf('test_2_%s',iri_type),...
+    'color','w');
+
+% axes initialization
+sps = gobjects(n_mice,1);
+for ii = 1 : n_mice
+    sps(ii) = subplot(round(n_mice/4),round(n_mice/2),ii);
+end
+set(sps,...
+    'xlimspec','tight',...
+    'ylimspec','tight',...
+    'xscale','linear',...
+    'nextplot','add',...
+    'linewidth',2,...
+    'fontsize',12,...
+    'tickdir','out');
+
+% iterate through mice
+for mm = 1 : n_mice
+    mouse_flags = data.mouse == mouse_ids{mm};
+    
+    % axes labels
+    title(sps(mm),mouse_ids{mm},...
+        'interpreter','none');
+    xlabel(sps(mm),sprintf('Previous %s IRI (s)',iri_type));
+    ylabel(sps(mm),'DA response');
+    
+    % iterate through sessions
+    n_sessions = max(data.session(mouse_flags));
+    session_clrs = cool(n_sessions);
+    for ss = 1 : n_sessions
+        session_flags = data.session == ss;
+        trial_flags = ...
+            mouse_flags & ...
+            session_flags & ...
+            reward_flags;
+        if sum(trial_flags) == 0
+            continue;
+        end
+        x = data.iri.(iri_type)(trial_flags);
+        X = [ones(size(x)),x];
+        y = data.da.cs_response(trial_flags);
+        betas = robustfit(x,y);
+        scatter(sps(mm),...
+            x,y,25,...
+            'markerfacecolor',session_clrs(ss,:),...
+            'markeredgecolor','none',...
+            'markerfacealpha',.25);
+        [~,idcs] = sort(x);
+        plot(sps(mm),...
+            x(idcs),X(idcs,:)*betas,'-w',...
+            'linewidth',3);
+        plot(sps(mm),...
+            x(idcs),X(idcs,:)*betas,'-',...
+            'color',session_clrs(ss,:),...
+            'linewidth',1.5);
+    end
+    trial_flags = ...
+        mouse_flags & ...
+        reward_flags;
+    x = data.iri.(iri_type)(trial_flags);
+    X = [ones(size(x)),x];
+    y = data.da.cs_response(trial_flags);
+    betas = robustfit(x,y);
+    [~,idcs] = sort(x);
+    plot(sps(mm),...
+        x(idcs),X(idcs,:)*betas,'--k',...
+        'linewidth',1);
+end
+
+% save figure
+if want2save
+    png_file = fullfile(save_path,[get(gcf,'name'),'.png']);
+    print(gcf,png_file,'-dpng','-r300','-painters');
 end

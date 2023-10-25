@@ -9,10 +9,10 @@ data_path = fullfile(root_path,'data');
 data_dir = dir(data_path);
 data_dir = data_dir(cellfun(@(x)~contains(x,'.'),{data_dir.name}));
 save_path = fullfile(root_path,'figures');
-want2save = false;
+want2save = 0;
 
 %% normalization settings
-want2renormalize = true;
+want2renormalize = 0;
 
 %% mouse settings
 mouse_ids = {data_dir.name};
