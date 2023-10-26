@@ -15,7 +15,7 @@ subexperiment_ids = {...
     };
 n_subexperiments = numel(subexperiment_ids);
 trace_dur = 1;
-cs_dur_set = [2,8,8];
+cs_dur_set = [2,8,8,8];
 csus_delay_set = cs_dur_set + trace_dur;
 
 %% background reward settings
@@ -28,6 +28,9 @@ baseline_period = [-1,0];
 roi_period = [0,2];
 
 %% data parsing
+
+% preallocation
+cs_plus_labels = cell(n_mice,1);
 
 % iterate through mice
 for mm = 1 : n_mice
@@ -127,6 +130,13 @@ for mm = 1 : n_mice
                     us_times(ii) = event_times(us_idx);
                 end
             end
+            
+            %% parse CS+ and CS-
+            if isempty(cs_plus_labels{mm})
+                cs_plus_labels(mm) = ...
+                    cellstr(unique(cs_labels(~isnan(us_times))));
+            end
+            cs_signs = 2 * (cs_labels == cs_plus_labels{mm}) - 1;
             
             %% parse first licks after reward delivery
             lick_flags = event_labels == 'lick';
@@ -297,7 +307,7 @@ for mm = 1 : n_mice
             % construct CS table
             cs_table = table(...
                 cs_labels,...
-                2 * (cs_labels == unique(cs_labels(~isnan(us_times)))) - 1,...
+                cs_signs,...
                 repmat(cs_dur_set(ee),n_trials,1),...
                 'variablenames',{...
                 'label',...
@@ -620,9 +630,10 @@ for mm = 1 : n_mice
     
     % trial selection
     mouse_flags = data.mouse == mouse_ids{mm};
+    cs_plus_flags = data.trial.cs.label == cs_plus_labels{mm};
     trial_flags = ...
         mouse_flags & ...
-        reward_flags;
+        cs_plus_flags;
     n_trials = sum(trial_flags);
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
@@ -671,7 +682,7 @@ for mm = 1 : n_mice
             trial_flags = ...
                 mouse_flags & ...
                 session_flags & ...
-                reward_flags;
+                cs_plus_flags;
             prev_counter = counter;
             counter = counter + sum(trial_flags);
             
@@ -692,7 +703,7 @@ for mm = 1 : n_mice
             experiment_flags = data.experiment == subexperiment_ids{ee};
             trial_flags = ...
                 mouse_flags & ...
-                cs_type_flags & ...
+                cs_plus_flags & ...
                 experiment_flags;
             prev_counter = counter;
             counter = counter + sum(trial_flags);
