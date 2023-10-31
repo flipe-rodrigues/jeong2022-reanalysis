@@ -1,1 +1,4 @@
 *.asv
+*.png
+/data/experiments/*.mat
+/panels/*.png

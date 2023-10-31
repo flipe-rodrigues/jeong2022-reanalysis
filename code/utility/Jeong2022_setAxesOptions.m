@@ -1,0 +1,20 @@
+%% default properties
+axesopt.default.plotboxaspectratio = [1,1,1];
+axesopt.default.ticklength = [1,1] * .025;
+axesopt.default.linewidth = 2;
+axesopt.default.xlimmode = 'auto';
+axesopt.default.ylimmode = 'auto';
+axesopt.default.xlimspec = 'tight';
+axesopt.default.ylimspec = 'tight';
+axesopt.default.xticklabelrotation = 0;
+axesopt.default.yticklabelrotation = 0;
+axesopt.default.fontname = 'helvetica';
+axesopt.default.fontsize = 15;
+axesopt.default.color = 'none';
+axesopt.default.xcolor = 'k';
+axesopt.default.ycolor = 'k';
+axesopt.default.zcolor = 'k';
+axesopt.default.nextplot = 'add';
+axesopt.default.tickdir = 'out';
+axesopt.default.box = 'off';
+axesopt.default.layer = 'top';
