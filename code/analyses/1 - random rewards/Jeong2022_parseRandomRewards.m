@@ -14,6 +14,10 @@ meta.mice.ids = cellfun(@(x)x(end-1:end),mouse_ids,...
 
 %% data parsing
 
+% preallocation
+reaction_times_cell = cell(n_mice,1);
+lick_times_cell = cell(n_mice,1);
+
 % iterate through mice
 for mm = 1 : n_mice
     
@@ -180,7 +184,7 @@ for mm = 1 : n_mice
                 sum(da_reward_snippets(ii,:) * dt) / range(meta.epochs.reward) - ...
                 sum(da_baseline_snippets(ii,:) * dt) / range(meta.epochs.baseline);
         end
-        
+
         %% organize session data into tables
         
         % construct trial table
@@ -290,8 +294,14 @@ for mm = 1 : n_mice
         % append to the current mouse's table
         if ss == 1
             mouse_data = session_data;
+            reaction_times_cell{mm} = reaction_times;
+            lick_times_cell{mm} = lick_times;
         else
             mouse_data = [mouse_data; session_data];
+            reaction_times_cell{mm} = ...
+                [reaction_times_cell{mm}; reaction_times];
+            lick_times_cell{mm} = ...
+                [lick_times_cell{mm}; lick_times];
         end
     end
     
@@ -306,5 +316,6 @@ end
 %% save data
 if want2savedata
     experiment_file = fullfile(experiments_path,'randomrewards.mat');
-    save(experiment_file,'meta','data','-v7.3');
+    save(experiment_file,...
+        'meta','data','reaction_times_cell','lick_times_cell','-v7.3');
 end
