@@ -8,7 +8,7 @@ Jeong2022_preface;
 rng(0);
 
 %% key assumptions
-use_clicks = 1;
+use_clicks = 0;
 
 %% experiment parameters
 iri_mu = 12;
@@ -21,10 +21,10 @@ iri_cutoff = 3;
 %% simulation parameters
 load('exp1data');
 n_rewards = numel(reaction_times);
-% n_rewards = 500;
+n_rewards = 5000;
 
 %% training stage settings
-n_stages = 3;
+n_stages = 8;
 stage_dur = 60;
 early_clr = [0,0,0];
 late_clr = [1,1,1] * .85;
@@ -111,15 +111,15 @@ mus = linspace(1,0,n);
 microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
 
 %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
-% csc = zeros(n_states,n);
-% pulse_duration = .5;
-% pulse_length = floor(pulse_duration / dt);
-% for ii = 1 : n
-%     idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
-%     csc(idcs,ii) = 1;
-% end
-% microstimuli = csc;
-% microstimuli = microstimuli / max(sum(microstimuli,2));
+csc = zeros(n_states,n);
+pulse_duration = .5;
+pulse_length = floor(pulse_duration / dt);
+for ii = 1 : n
+    idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
+    csc(idcs,ii) = 1;
+end
+microstimuli = csc;
+microstimuli = microstimuli / max(sum(microstimuli,2));
 
 %% elibility traces
 eligibility = zeros(n_states,n);

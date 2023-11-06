@@ -45,4 +45,4 @@ lambda = .95;               % decay for eligibility traces
 tau = .99.^(1/dt);          % decay for the stimulus trace
 y0 = 1;                     % starting height of the stimulus trace
 sigma = .08;                % width of each basis function
-n = 20;                     % number of microstimuli per stimulus
+n = 100;                     % number of microstimuli per stimulus
