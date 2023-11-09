@@ -1179,7 +1179,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -1273,7 +1273,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -1396,7 +1396,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -1616,7 +1616,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -1729,7 +1729,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -1870,7 +1870,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -2109,7 +2109,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -2204,7 +2204,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -2285,7 +2285,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -2461,7 +2461,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -2571,7 +2571,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -2652,7 +2652,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -2821,7 +2821,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -2915,7 +2915,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -3001,7 +3001,7 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end
 
@@ -3079,6 +3079,6 @@ end
 % save figure
 if want2save
     file_name = sprintf('%s_%s',mfilename,[get(gcf,'name'),'.png']);
-    file_path = fullfile(save_path,file_name);
+    file_path = fullfile(panel_path,file_name);
     print(gcf,file_path,'-dpng','-r300','-painters');
 end

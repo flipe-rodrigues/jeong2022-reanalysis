@@ -1,17 +1,7 @@
-%% initialization
-close all;
-clear;
-clc;
-
-%% directory settings
-root_path = fileparts(pwd);
-data_path = fullfile(root_path,'data');
-data_dir = dir(data_path);
-data_dir = data_dir(cellfun(@(x)~contains(x,'.'),{data_dir.name}));
+%% preface
+Jeong2022_dataPreface;
 
 %% mouse settings
-mouse_ids = {data_dir.name};
-mouse_ids = mouse_ids([6,2,3,4,5,1,7,8]);
 mouse_ids = mouse_ids(~ismember(mouse_ids,'HJ_FP_M8'));
 n_mice = numel(mouse_ids);
 
@@ -21,13 +11,6 @@ subexperiment_id = 'extension';
 cs_dur = 8;
 trace_dur = 1;
 csus_delay = cs_dur + trace_dur;
-
-%% acquisition settings
-fs = 120;
-dt = 1 / fs;
-
-%% smoothing kernels
-lickrate_kernel = gammakernel('peakx',.15,'binwidth',dt);
 
 %% analysis parameters
 trial_period = [0,csus_delay] + [-2,4];
@@ -44,8 +27,8 @@ cs_plus_labels = cell(n_mice,1);
 for mm = 1 : n_mice
     
     % parse mouse directory
-    mouse_path = fullfile(data_path,mouse_ids{mm},experiment_id);
-    mouse_dir = dir([mouse_path,filesep,'*',subexperiment_id]);
+    mouse_path = fullfile(mice_path,mouse_ids{mm},experiment_id);
+    mouse_dir = dir([mouse_path,filesep,'*_',subexperiment_id]);
     mouse_dir = mouse_dir(cellfun(@(x)~contains(x,'.'),{mouse_dir.name}));
     
     % parse session directory

@@ -10,9 +10,9 @@ experiment_id = 'pavlovian';
 subexperiment_ids = {...
     'acquisition',...
     'extension',...
-    'background',...
-    'reacquisition',...
-    'extinction',...
+    ...'background',...
+    ...'reacquisition',...
+    ...'extinction',...
     };
 n_subexperiments = numel(subexperiment_ids);
 trace_dur = 1;
@@ -43,7 +43,7 @@ for mm = 1 : n_mice
         'parsing behavioral & photometry data (mouse %i/%i)',mm,n_mice));
     
     % parse mouse directory
-    mouse_path = fullfile(data_path,mouse_ids{mm},experiment_id);
+    mouse_path = fullfile(mice_path,mouse_ids{mm},experiment_id);
     
     % initialize mouse counters
     mouse_session_idx = 1;
@@ -598,7 +598,7 @@ for mm = 1 : n_mice
     
     % save figure
     if want2save
-        png_file = fullfile(save_path,[get(gcf,'name'),'.png']);
+        png_file = fullfile(panel_path,[get(gcf,'name'),'.png']);
         print(gcf,png_file,'-dpng','-r300','-painters');
     end
 end
@@ -770,7 +770,7 @@ for mm = 1 : n_mice
     
     % save figure
     if want2save
-        png_file = fullfile(save_path,[get(gcf,'name'),'.png']);
+        png_file = fullfile(panel_path,[get(gcf,'name'),'.png']);
         print(gcf,png_file,'-dpng','-r300','-painters');
     end
 end
@@ -922,7 +922,7 @@ for mm = 1 : n_mice
     
     % save figure
     if want2save
-        png_file = fullfile(save_path,[get(gcf,'name'),'.png']);
+        png_file = fullfile(panel_path,[get(gcf,'name'),'.png']);
         print(gcf,png_file,'-dpng','-r300','-painters');
     end
 end
@@ -1073,7 +1073,7 @@ for mm = 1 : n_mice
     
     % save figure
     if want2save
-        png_file = fullfile(save_path,[get(gcf,'name'),'.png']);
+        png_file = fullfile(panel_path,[get(gcf,'name'),'.png']);
         print(gcf,png_file,'-dpng','-r300','-painters');
     end
 end
@@ -2488,7 +2488,7 @@ end
 
 % save figure
 if want2save
-    png_file = fullfile(save_path,[get(gcf,'name'),'.png']);
+    png_file = fullfile(panel_path,[get(gcf,'name'),'.png']);
     print(gcf,png_file,'-dpng','-r300','-painters');
 end
 
