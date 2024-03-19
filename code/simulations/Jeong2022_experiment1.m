@@ -8,7 +8,7 @@ Jeong2022_preface;
 rng(0);
 
 %% key assumptions
-use_clicks = 1;
+use_clicks = 0;
 use_licks = 0;
 
 %% experiment parameters
@@ -20,13 +20,13 @@ reward_period = [-.5,1];
 iri_cutoff = 3;
 
 %% simulation parameters
-load('exp1data');
-load('randomrewards');
-for mm = 1 : 8
-    reaction_times = max(0,reaction_times_cell{mm} - .25); % !!!!!!!!!!!!!
-    lick_times = lick_times_cell{mm};
-    n_rewards = numel(reaction_times);
-    % n_rewards = 500;
+% load('exp1data');
+% load('randomrewards');
+for mm = 1 % : 8
+%     reaction_times = max(0,reaction_times_cell{mm} - .25); % !!!!!!!!!!!!!
+%     lick_times = lick_times_cell{mm};
+%     n_rewards = numel(reaction_times);
+    n_rewards = 10000;
     
     %% training stage settings
     n_stages = 3;
@@ -116,15 +116,15 @@ for mm = 1 : 8
     microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
     
     %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
-    % csc = zeros(n_states,n);
-    % pulse_duration = .5;
-    % pulse_length = floor(pulse_duration / dt);
-    % for ii = 1 : n
-    %     idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
-    %     csc(idcs,ii) = 1;
-    % end
-    % microstimuli = csc;
-    % microstimuli = microstimuli / max(sum(microstimuli,2));
+    csc = zeros(n_states,n);
+    pulse_duration = .2;
+    pulse_length = floor(pulse_duration / dt);
+    for ii = 1 : n
+        idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
+        csc(idcs,ii) = 1;
+    end
+    microstimuli = csc;
+    microstimuli = microstimuli / max(sum(microstimuli,2));
     
     %% elibility traces
     eligibility = zeros(n_states,n);
@@ -361,7 +361,7 @@ for mm = 1 : 8
             'linewidth',1);
         
         % plot DA signal
-        plot(sp_rpe(ii),time,da/max(dlight_kernel.pdf),...
+        plot(sp_rpe(ii),time,da,...
             'color',highlight_clr);
         
         % plot value trace

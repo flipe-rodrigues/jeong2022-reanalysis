@@ -99,6 +99,10 @@ function [state,value,rpe,weights,eligibility] = tdlambda(...
             param.gamma * param.lambda * eligibility(ss-1,:) + state(ss-1,:);
         value(ss) = weights * state(ss,:)';
         rpe(ss) = reward(ss) + param.gamma * value(ss) - value(ss-1);
-        weights = weights + param.alpha * rpe(ss) * eligibility(ss,:) * dt;
+        weights = weights + param.alpha * rpe(ss) * eligibility(ss,:);% * dt;
+        
+%         if any(state(ss-1,:)) && rpe(ss) > 0
+%             a=1
+%         end
     end
 end

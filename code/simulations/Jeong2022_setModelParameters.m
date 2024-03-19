@@ -36,13 +36,24 @@ psi = 0;                                % background [DA]
 % sigma = .08;                % width of each basis function
 % n = 50;                     % number of microstimuli per stimulus
 
-%% model parameters (matched to Jeong & Namboodiri 2022)
-% dt = .2; % .2            	% state step size [s]
-% gamma = .98; % .95          % temporal discount factor
+%% model parameters (matched to Jeong & Namboodiri 2022 - microstimuli)
+% dt = .2;                    % state step size [s]
+% gamma = .98;                % temporal discount factor
 % eta = etafun(dt,gamma);     % discount time constant [s]
-% alpha = .02; % .05          % learning rate
+% alpha = .02;                % learning rate
 % lambda = .95;               % decay for eligibility traces
 % tau = .99.^(1/dt);          % decay for the stimulus trace
 % y0 = 1;                     % starting height of the stimulus trace
 % sigma = .08;                % width of each basis function
-% n = 20;                     % number of microstimuli per stimulus
+% n = 20;                   	% number of microstimuli per stimulus
+
+%% model parameters (matched to Jeong & Namboodiri 2022 - CSC)
+dt = .2;                    % state step size [s]
+gamma = .95;                % temporal discount factor
+eta = etafun(dt,gamma);     % discount time constant [s]
+alpha = .05;            	% learning rate
+lambda = 0;                 % decay for eligibility traces
+tau = .99.^(1/dt);          % decay for the stimulus trace
+y0 = 1;                     % starting height of the stimulus trace
+sigma = .08;                % width of each basis function
+n = 180;                    % number of microstimuli per stimulus
