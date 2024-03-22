@@ -1,4 +1,5 @@
 %% converts from/to temporal discount factor to/from time constant [s]
+alphafun = @(dt,alpha) alpha * dt / .2;
 gammafun = @(dt,eta) exp(-dt/eta);
 etafun = @(dt,gamma) -dt/log(gamma);
 
@@ -8,7 +9,7 @@ eta = 200;                            	% discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
 alpha = .02;                          	% learning rate
 lambda = gammafun(dt,etafun(.2,.95)) * .98 / gamma;	% decay for eligibility traces
-tau = .99.^(1/.2);                      % decay for the stimulus trace
+tau = .95;                              % decay for the stimulus trace
 y0 = 1;                                 % starting height of the stimulus trace
 sigma = .08;                            % width of each basis function
 n = 20;                                 % number of microstimuli per stimulus
@@ -19,8 +20,8 @@ psi = 0;                                % background [DA]
 % eta = etafun(.2,.98);                   % discount time constant [s]
 % gamma = gammafun(dt,eta);               % temporal discount factor
 % alpha = .02;                            % learning rate
-% lambda = gammafun(dt,etafun(.2,.95));	% decay for eligibility traces
-% tau = .99.^(1/.2);                    	% decay for the stimulus trace
+% lambda = gammafun(dt,etafun(.2,.95));	  % decay for eligibility traces
+% tau = .95;                              % decay for the stimulus trace
 % y0 = 1;                                 % starting height of the stimulus trace
 % sigma = .08;                            % width of each basis function
 % n = 20;                                 % number of microstimuli per stimulus
@@ -37,23 +38,23 @@ psi = 0;                                % background [DA]
 % n = 50;                     % number of microstimuli per stimulus
 
 %% model parameters (matched to Jeong & Namboodiri 2022 - microstimuli)
-% dt = .2;                    % state step size [s]
-% gamma = .98;                % temporal discount factor
-% eta = etafun(dt,gamma);     % discount time constant [s]
-% alpha = .02;                % learning rate
-% lambda = .95;               % decay for eligibility traces
-% tau = .99.^(1/dt);          % decay for the stimulus trace
-% y0 = 1;                     % starting height of the stimulus trace
-% sigma = .08;                % width of each basis function
-% n = 20;                   	% number of microstimuli per stimulus
-
-%% model parameters (matched to Jeong & Namboodiri 2022 - CSC)
-dt = .2;                    % state step size [s]
-gamma = .95;                % temporal discount factor
+dt = .2;                	% state step size [s]
+gamma = .98;                % temporal discount factor
 eta = etafun(dt,gamma);     % discount time constant [s]
-alpha = .05;            	% learning rate
-lambda = 0;                 % decay for eligibility traces
-tau = .99.^(1/dt);          % decay for the stimulus trace
+alpha = alphafun(dt,.02);  	% learning rate
+lambda = .95;               % decay for eligibility traces
+tau = .951;                 % decay for the stimulus trace
 y0 = 1;                     % starting height of the stimulus trace
 sigma = .08;                % width of each basis function
-n = 180;                    % number of microstimuli per stimulus
+n = 20;                   	% number of microstimuli per stimulus
+
+%% model parameters (matched to Jeong & Namboodiri 2022 - CSC)
+% dt = .2;                    % state step size [s]
+% gamma = .95;                % temporal discount factor
+% eta = etafun(dt,gamma);     % discount time constant [s]
+% alpha = alphafun(dt,.05);   % learning rate
+% lambda = 0;                 % decay for eligibility traces
+% tau = .951;                 % decay for the stimulus trace
+% y0 = 1;                     % starting height of the stimulus trace
+% sigma = .08;                % width of each basis function
+% n = 180;                    % number of microstimuli per stimulus

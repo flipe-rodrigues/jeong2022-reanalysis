@@ -17,6 +17,7 @@ iri_mu = 12;
 %% analysis parameters
 baseline_period = [-2,-.5];
 reward_period = [-.5,1];
+value_period = [-10,40];
 iri_cutoff = 3;
 
 %% simulation parameters
@@ -26,7 +27,7 @@ for mm = 1 % : 8
 %     reaction_times = max(0,reaction_times_cell{mm} - .25); % !!!!!!!!!!!!!
 %     lick_times = lick_times_cell{mm};
 %     n_rewards = numel(reaction_times);
-    n_rewards = 10000;
+    n_rewards = 5000;
     
     %% training stage settings
     n_stages = 3;
@@ -116,15 +117,18 @@ for mm = 1 % : 8
     microstimuli = microstimulusfun(stimulus_trace,mus,sigma);
     
     %% UNCOMMENT TO REPLACE MICROSTIMULI WITH COMPLETE SERIAL COMPOUND
-    csc = zeros(n_states,n);
-    pulse_duration = .2;
-    pulse_length = floor(pulse_duration / dt);
-    for ii = 1 : n
-        idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
-        csc(idcs,ii) = 1;
-    end
-    microstimuli = csc;
-    microstimuli = microstimuli / max(sum(microstimuli,2));
+%     csc = zeros(n_states,n);
+%     pulse_duration = .2;
+%     pulse_length = floor(pulse_duration / dt);
+%     for ii = 1 : n
+%         idcs = (1 : pulse_length) + (ii - 1) * pulse_length;
+%         csc(idcs,ii) = 1;
+% %         if ii == n
+% %             csc(idcs:end,ii) = 1; % match their implementation!
+% %         end
+%     end
+%     microstimuli = csc;
+%     microstimuli = microstimuli / max(sum(microstimuli,2));
     
     %% elibility traces
     eligibility = zeros(n_states,n);
@@ -186,7 +190,7 @@ for mm = 1 % : 8
     [da_reward_snippets,da_reward_time] = ...
         signal2eventsnippets(time,da,reward_times,reward_period,dt);
     [value_snippets,value_time] = ...
-        signal2eventsnippets(time,value,reward_times,[-10,40],dt);
+        signal2eventsnippets(time,value,reward_times,value_period,dt);
     
     %% IRI-based reward selection
     iri_flags = ...
