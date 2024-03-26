@@ -8,7 +8,7 @@ Jeong2022_preface;
 rng(0);
 
 %% key assumptions
-use_clicks = 1;
+use_clicks = 0;
 use_licks = 0;
 
 %% experiment parameters
@@ -21,12 +21,12 @@ value_period = [-10,40];
 iri_cutoff = 3;
 
 %% simulation parameters
-load('randomrewards');
-for mm = 1 : 8
-    n_rewards = 500;
-    reaction_times = max(0,reaction_times_cell{mm} - .25); % !!!!!!!!!!!!!
-    lick_times = lick_times_cell{mm};
-    n_rewards = numel(reaction_times);
+% load('randomrewards');
+for mm = 1 %: 8
+    n_rewards = 2500;
+%     reaction_times = max(0,reaction_times_cell{mm} - .25); % !!!!!!!!!!!!!
+%     lick_times = lick_times_cell{mm};
+%     n_rewards = numel(reaction_times);
     
     %% training stage settings
     n_stages = 3;
@@ -51,7 +51,7 @@ for mm = 1 : 8
     click_counts = histcounts(click_times,state_edges);
     
     %% reaction times
-%     reaction_times = repmat(.5,n_rewards,1);
+    reaction_times = repmat(.5,n_rewards,1);
     % reaction_times = linspace(1,max(.1,dt*2),n_rewards)';
     % reaction_times = normalize01(click_times .^ -dt) + .1;
     % reaction_times = normalize01(1 ./ (1 + .005 .* click_times)) + .1;
@@ -285,7 +285,7 @@ for mm = 1 : 8
     set([sp_iri,sp_hazard,sp_stimulustrace,sp_microstimulus,sp_eligibility],...
         'xlim',[0,40]);
     set(sp_reaction,...
-        'ylim',[0,quantile(reaction_times,.99)]);
+        'ylim',[0,max(quantile(reaction_times,.99),1e-6)]);
     set(sp_value_mu,...
         'xlim',[value_time(1),value_time(end)]);
     set([sp_stimulustrace,sp_hazard],...

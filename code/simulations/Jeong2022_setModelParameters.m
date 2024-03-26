@@ -8,11 +8,11 @@ dt = .05;                               % state step size [s]
 eta = 100;                            	% discount time constant [s]
 gamma = gammafun(dt,eta);               % temporal discount factor
 alpha = alphafun(dt,.02);           	% learning rate
-lambda = gammafun(dt,etafun(.2,.95));	% decay for eligibility traces
+lambda = gammafun(dt,etafun(.2,.95))*0;	% decay for eligibility traces
 tau = .95;                              % decay for the stimulus trace
 y0 = 1;                                 % starting height of the stimulus trace
 sigma = .08;                            % width of each basis function
-n = 50;                                 % number of microstimuli per stimulus
+n = 20;                                 % number of microstimuli per stimulus
 psi = 0;                                % background [DA]
 
 %% model parameters (high resolution version of Jeong & Namboodiri 2022)
