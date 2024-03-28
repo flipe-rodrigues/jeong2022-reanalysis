@@ -120,7 +120,7 @@ for mm = 1 : n_mice
             lick_edges(1:end-1),lick_counts,firstlick_times,...
             collection_period + lickrate_kernel.paddx,dt);
         
-        %% contingency-related metrics 
+        %% contingency-related metrics
         
         % compute lick -> reward intervals
         lick_idcs = sum(lick_times > reward_times',2);
@@ -578,7 +578,7 @@ for mm = 1 : n_mice
     ylim(sps(mm),quantile(y,[.05,.95]));
     
     % !!!!!!!!!!!!!!!!!!!!!!!!!!
-     rt_iri_slopes(mm) = betas(2);
+    rt_iri_slopes(mm) = betas(2);
 end
 
 %% plot reaction time vs DA response
@@ -2909,7 +2909,7 @@ for mm = 1 : n_mice
         'linewidth',1);
     
     % !!!!!!!!!!!!!!!!!!!!!!!!!!
-     test2_slopes(mm) = betas(2);
+    test2_slopes(mm) = betas(2);
 end
 
 % save figure
@@ -2987,6 +2987,13 @@ for mm = 1 : n_mice
     plot(x,y+offset,'.',...
         'markersize',10,...
         'color',mouse_clrs(mm,:));
+%     scatter(x,y+offset,10,...
+%         min(data.iri.nominal(reward_flags),30),...
+%         'marker','o',...
+%         'markerfacealpha',.5,...
+%         'markerfacecolor','flat',...
+%         'markeredgecolor','flat',...
+%         'linewidth',1);
     
     % plot model prediction
     [~,idcs] = sort(x);

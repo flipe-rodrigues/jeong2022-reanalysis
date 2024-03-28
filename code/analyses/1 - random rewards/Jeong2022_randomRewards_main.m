@@ -210,7 +210,7 @@ end
 % adjust axes limits
 xlim(xlim + [-1,1] * .05 * range(xlim));
 ylim(ylim + [-1,1] * .05 * range(ylim));
-    return;
+
 %% reward delivery-aligned DA 
 
 % rasters (sorted chronologically)
