@@ -194,8 +194,8 @@ for mm = 1 %: 8
     
     %% IRI-based reward selection
     iri_flags = ...
-        [iri(2:end);nan] >= iri_cutoff * 1 & ...
-        iri >= iri_cutoff;
+        [iri(2:end);nan] > iri_cutoff * 1 & ...
+        iri > iri_cutoff;
     da_baseline_snippets(~iri_flags,:) = nan;
     da_reward_snippets(~iri_flags,:) = nan;
     value_snippets(~iri_flags,:) = nan;
