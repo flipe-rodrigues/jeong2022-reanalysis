@@ -57,7 +57,6 @@ for mm = 1 : n_mice
         
         % parse session directory
         session_ids = {mouse_dir.name};
-        session_days = cellfun(@(x)str2double(strrep(x,'Day','')),session_ids);
         
         % sort sessions chronologically
         days = cellfun(@(x) sscanf(x,'Day%i'),session_ids);
