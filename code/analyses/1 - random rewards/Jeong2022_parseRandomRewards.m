@@ -107,8 +107,9 @@ for mm = 1 : n_mice
         
         % renormalization
         if want2renormalize
-            f0 = abs(quantile(dff,.1));
-            dff = (dff - f0) ./ f0;
+%             f0 = abs(quantile(dff,.1));
+%             dff = (dff - f0) ./ f0;
+            dff = (dff - mean(dff)) ./ std(dff);
         end
         
         %% parse licks
