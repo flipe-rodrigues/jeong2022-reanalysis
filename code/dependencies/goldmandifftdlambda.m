@@ -83,8 +83,8 @@ function [state,value,rpe,rwdrate,weights,eligibility] = goldmandifftdlambda(...
         eligibility(ss,:) = ...
             param.lambda * eligibility(ss-1,:) + state(ss-1,:);
         value(ss) = weights * state(ss,:)';
-        rpe(ss) = reward(ss) - rwdrate(ss - 1) + value(ss) - value(ss-1);
-%         rpe(ss) = reward(ss) + param.gamma * value(ss) - value(ss-1);
+%         rpe(ss) = reward(ss) - rwdrate(ss - 1) + value(ss) - value(ss-1);
+        rpe(ss) = reward(ss) + param.gamma * value(ss) - value(ss-1);
         weights = weights + param.alpha * rpe(ss) * eligibility(ss,:) * dt;
         rwdrate(ss) = rwdrate(ss-1) + ...
             (1 - param.gamma) / 10 * param.alpha * rpe(ss);
