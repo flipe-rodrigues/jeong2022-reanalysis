@@ -14,18 +14,18 @@ us_delay = cs_dur + trace_dur;
 %% session selection settings
 session_start_idcs = [1,2,3,1,1,1,2];
 session_stop_idcs = [4,5,4,2,3,3,4];
-% session_start_idcs = [1,1,1,1,1,1,1];
-% session_stop_idcs = [4,5,4,2,3,3,4]*inf;
+% session_start_idcs = [1,2,1,1,1,1,1];
+% session_stop_idcs = [1,1,1,1,1,1,1]*inf;
 
 %% analysis parameters
 trial_period = [0,max(us_delay)] + [-1,1] * 5;
 baseline_period = [-.5,0];
 roi_period = [0,.5];
-stimulus_period = [-2,3];
+stimulus_period = [-2,2];
 
 %% selection criteria
 iti_cutoff = -inf;
-iei_cutoff = .5;
+iei_cutoff = .5; % -inf;
 nanify = false;
 
 %% data parsing
@@ -37,35 +37,35 @@ cs_plus_labels = cell(n_mice,1);
 for mm = 1 : n_mice
     progressreport(mm,n_mice,sprintf(...
         'parsing behavioral & photometry data (mouse %i/%i)',mm,n_mice));
-    
+
     % parse mouse directory
     mouse_path = fullfile(mice_path,mouse_ids{mm},experiment_id);
     mouse_dir = dir(mouse_path);
     mouse_dir = mouse_dir(cellfun(@(x)~contains(x,'.'),{mouse_dir.name}));
-    
+
     % initialize mouse counters
     mouse_session_idx = 1;
     mouse_trial_counter = 0;
-    
+
     % parse session directory
     session_ids = {mouse_dir.name};
-    
+
     % sort sessions chronologically
     days = cellfun(@(x) sscanf(x,'Day%i'),session_ids);
     [~,chrono_idcs] = sort(days);
     session_ids = session_ids(chrono_idcs);
     n_sessions = numel(session_ids);
-    
+
     % iterate through sessions
     for ss = session_start_idcs(mm) : min(session_stop_idcs(mm),n_sessions)
         session_path = fullfile(mouse_path,session_ids{ss});
-        
+
         %% load behavioral data
         bhv_id = sprintf('%s_%s_eventlog.mat',...
             mouse_ids{mm},session_ids{ss});
         bhv_path = fullfile(session_path,bhv_id);
         load(bhv_path)
-        
+
         %% parse events
         event_labels = categorical(...
             eventlog(:,1),[15,16,5,10,14,0],...
@@ -81,7 +81,7 @@ for mm = 1 : n_mice
             end_idx = numel(event_labels);
         end
         session_dur = event_times(end_idx) - event_times(start_idx);
-        
+
         %% event selection
         valid_flags = ...
             ~isundefined(event_labels) & ...
@@ -92,14 +92,14 @@ for mm = 1 : n_mice
         event_idcs = (1 : n_events)';
         event_labels = removecats(event_labels(valid_flags),'end');
         event_times = event_times(valid_flags);
-        
+
         %% parse US
         us_flags = event_labels == 'US';
         us_events = find(us_flags);
         us_times = event_times(us_flags);
         n_trials = sum(us_flags);
         trial_idcs = (1 : n_trials)';
-        
+
         %% parse CS
         cs_flags = ismember(event_labels,{'CS1','CS2'});
         cs_events = find(cs_flags);
@@ -107,20 +107,20 @@ for mm = 1 : n_mice
         cs_times = event_times(cs_flags);
         cs_labels = cs_labels(trial_idcs);
         cs_times = cs_times(trial_idcs);
-        
+
         %% parse CS+ and CS-
         if isempty(cs_plus_labels{mm})
             cs_plus_labels(mm) = ...
                 cellstr(unique(cs_labels(~isnan(us_times))));
         end
         cs_signs = 2 * (cs_labels == cs_plus_labels{mm}) - 1;
-        
+
         %% parse first licks after reward delivery
         lick_flags = event_labels == 'lick';
-        
+
         % preallocation
         reward_times = nan(n_trials,1);
-        
+
         % iterate through trials
         for ii = 1 : n_trials
             trial_idx = find(lick_flags & ...
@@ -129,18 +129,21 @@ for mm = 1 : n_mice
                 reward_times(ii) = event_times(trial_idx);
             end
         end
-        
+
         %% compute inter-trial-intervals (ITI)
         iti = cs_times - [0;cs_times(1:end-1)+us_delay];
-        
+
         %% compute inter-cue-intervals (ICI)
         ici = cs_times - [nan;cs_times(1:end-1)];
-        
+
         %% compute intermediate CS-paired US intervals (CUI)
         cui = [us_times(2:end);inf]' - cs_times;
         cui(cui<0) = nan;
         cui = min(cui,[],2);
-        
+
+        %% compute inter-reward-intervals (ICI)
+        iri = reward_times - [nan;reward_times(1:end-1)];
+
         %% compute inter-reward-intervals (IRI, nominal & actual)
         iri_nominal = nan(n_trials,1);
         iri_actual = nan(n_trials,1);
@@ -148,31 +151,31 @@ for mm = 1 : n_mice
             diff([0;us_times((~isnan(us_times)))]);
         iri_actual(~isnan(reward_times)) = ...
             diff([0;reward_times((~isnan(reward_times)))]);
-        
+
         %% parse reaction time
         reaction_times = reward_times - us_times;
-               
+
         %% parse intermediate and previous "trials"
         intermediate_flags = ici < us_delay;
         trial_type = categorical(intermediate_flags,[0,1],...
             {'previous','intermediate'});
-        
+
         %% load photometry data
         photometry_path = fullfile(session_path,'Photometry.mat');
         load(photometry_path);
-        
+
         % renormalization
         if want2renormalize
             %                 f0 = abs(quantile(dff,.1));
             %                 dff = (dff - f0) ./ f0;
-            %                 dff = (dff - mean(dff)) ./ std(dff);
+            dff = (dff - mean(dff)) ./ std(dff);
         end
-        
+
         %% parse licks
         lick_times = event_times(lick_flags);
         lick_edges = event_times(1) : dt : event_times(end);
         lick_counts = histcounts(lick_times,lick_edges);
-        
+
         % get lick-aligned snippets of lick counts
         [lick_cs_snippets,lick_cs_time] = signal2eventsnippets(...
             lick_edges(1:end-1),lick_counts,cs_times,...
@@ -180,19 +183,19 @@ for mm = 1 : n_mice
         [lick_reward_snippets,lick_reward_time] = signal2eventsnippets(...
             lick_edges(1:end-1),lick_counts,reward_times,...
             trial_period + lickrate_kernel.paddx,dt,nanify);
-        
+
         %% compute inter-lick-intervals (ILI)
         ili_events = diff([nan;lick_times]);
         ili_idcs = sum(lick_times > cs_times',2);
         ili_trials = arrayfun(@(x)ili_events(ili_idcs == x),trial_idcs,...
             'uniformoutput',false);
-        
+
         %% parse photometry data
-        
+
         % correct for nonstationary sampling frequency
         time = T(1) : dt : T(end);
         da = interp1(T,dff,time);
-        
+
         % get event-aligned snippets of DA
         [da_baseline_snippets,~] = signal2eventsnippets(...
             time,da,cs_times,baseline_period,dt,nanify);
@@ -206,14 +209,14 @@ for mm = 1 : n_mice
             time,da,cs_times,trial_period,dt,nanify);
         [da_reward_snippets,da_reward_time] = signal2eventsnippets(...
             time,da,reward_times,trial_period,dt,nanify);
-        
+
         % preallocation
         da_cs_response = nan(n_trials,1);
         da_reward_response = nan(n_trials,1);
-        
+
         % iterate through trials
         for ii = 1 : n_trials
-            
+
             % compute 'DA response' metric
             da_cs_response(ii) = ...
                 sum(da_cs_roi_snippets(ii,:) * dt) / range(roi_period) - ...
@@ -222,9 +225,9 @@ for mm = 1 : n_mice
                 sum(da_reward_roi_snippets(ii,:) * dt) / range(roi_period) - ...
                 sum(da_baseline_snippets(ii,:) * dt) / range(baseline_period);
         end
-        
+
         %% organize session data into tables
-        
+
         % construct trial table
         index_table = table(...
             trial_idcs + mouse_trial_counter,...
@@ -233,7 +236,7 @@ for mm = 1 : n_mice
             'mouse',...
             'session',...
             });
-        
+
         % construct time table
         time_table = table(...
             cs_times,...
@@ -246,7 +249,7 @@ for mm = 1 : n_mice
             'us',...
             'reward',...
             });
-        
+
         % construct CS table
         cs_table = table(...
             cs_labels,...
@@ -257,7 +260,7 @@ for mm = 1 : n_mice
             'sign',...
             'dur',...
             });
-        
+
         % construct trial table
         trial_table = table(...
             index_table,...
@@ -270,7 +273,7 @@ for mm = 1 : n_mice
             'cs',...
             'type',...
             });
-        
+
         % construct IRI table
         iri_table = table(...
             iri_nominal,...
@@ -279,7 +282,7 @@ for mm = 1 : n_mice
             'nominal',...
             'actual',...
             });
-        
+
         % construct lick table
         lick_table = table(...
             lick_cs_snippets,...
@@ -287,7 +290,7 @@ for mm = 1 : n_mice
             'variablenames',{...
             'cs',...
             'reward'});
-        
+
         % construct DA table
         da_table = table(...
             da_cs_snippets,...
@@ -299,7 +302,7 @@ for mm = 1 : n_mice
             'reward',...
             'cs_response',...
             'reward_response'});
-        
+
         % concatenate into a session table
         session_data = table(...
             categorical(cellstr(repmat(mouse_ids{mm},n_trials,1)),mouse_ids),...
@@ -308,7 +311,7 @@ for mm = 1 : n_mice
             iti,...
             ici,...
             cui,...
-            iri_table,...
+            iri,...
             reaction_times,...
             lick_table,...
             ili_trials,...
@@ -326,19 +329,19 @@ for mm = 1 : n_mice
             'ili',...
             'da',...
             });
-        
+
         % append to the current mouse's table
         if mouse_session_idx == 1
             mouse_data = session_data;
         else
             mouse_data = [mouse_data; session_data];
         end
-        
+
         % increment mouse counters
         mouse_session_idx = mouse_session_idx + 1;
         mouse_trial_counter = mouse_trial_counter + n_trials;
     end
-    
+
     % append to the final data table
     if mm == 1
         data = mouse_data;
@@ -352,7 +355,8 @@ iti_flags = ...
     data.iti >= iti_cutoff & ...
     [data.iti(2:end); nan] >= iti_cutoff;
 iei_flags = ...
-    min(data.ici,data.cui) >= iei_cutoff;
+    data.ici >= iei_cutoff & ...
+    data.cui >= iei_cutoff;
 nan_flags = all(isnan(data.da.cs),2);
 valid_flags = ...
     iti_flags & ...
@@ -376,7 +380,7 @@ reward_flags = ~isnan(data.trial.time.reward);
 
 % iterate through mice
 for mm = 1 : n_mice
-    
+
     % figure initialization
     figure(...
         'windowstyle','docked',...
@@ -384,7 +388,7 @@ for mm = 1 : n_mice
         'name',sprintf('%s_%s_cs_chronological',...
         strrep(mouse_ids{mm},'_',''),experiment_id),...
         'color','w');
-    
+
     % axes initialization
     n_rows = 1;
     n_cols = 2;
@@ -405,7 +409,7 @@ for mm = 1 : n_mice
         'fontsize',12,...
         'layer','top',...
         'tickdir','out');
-    
+
     % figure pseudo title
     annotation(...
         'textbox',[0,.95,1,.05],...
@@ -416,11 +420,11 @@ for mm = 1 : n_mice
         'verticalalignment','bottom',...
         'linestyle','none',...
         'interpreter','none');
-    
+
     % axes titles
     title(sps(1),'DA (\DeltaF/F)');
     title(sps(2),'Lick rate');
-    
+
     % trial selection
     mouse_flags = data.mouse == mouse_ids{mm};
     trial_flags = ...
@@ -429,50 +433,49 @@ for mm = 1 : n_mice
     n_trials = sum(trial_flags);
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
-    
+
     % parse DA data
     da_mat = data.da.cs(trial_flags,:);
-    
+
     % parse lick data
     lick_counts = data.lick.cs(trial_flags,:);
     nan_flags = isnan(lick_counts);
     lick_counts(nan_flags) = 0;
     lick_mat = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
     lick_mat(nan_flags) = nan;
-    
+
     % parse behavioral data
+    ici = data.ici(trial_flags);
+    cui = data.cui(trial_flags);
     reaction_times = data.rt(trial_flags);
     us_delays = data.trial.cs.dur(trial_flags) + trace_dur;
     session_idcs = data.session(trial_flags);
-    
+
     % trial sorting
     sorting_mat = [...
         double(data.trial.cs.label(trial_flags)),...
         data.session(trial_flags),...
         data.rt(trial_flags),...
         double(data.trial.type(trial_flags)),...
+        data.ici(trial_flags),...
         data.cui(trial_flags)];
-    [~,sorted_idcs] = sortrows(sorting_mat,[1,2,4,5]);
-    
+    [~,sorted_idcs] = sortrows(sorting_mat,[1,2,4]);
+
     % plot DA raster
     imagesc(sps(1),da_cs_time,[],...
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     imagesc(sps(2),lick_cs_time,[],...
         lick_mat(sorted_idcs,:),[0,8.5]);
-    
-    % plot intermediate "trials"
-    intermediate_flags = data.trial.type(trial_flags) == 'intermediate';
-    intermediate_idcs = find(intermediate_flags(sorted_idcs));
-    plot(sps(1),zeros(sum(intermediate_flags),1),...
-        intermediate_idcs,...
-        'marker','.',...
-        'markersize',10,...
-        'color',type_clrs(2,:),...
-        'linestyle','none');
-    
+
     % iterate through rasters
     for ii = 1 : n_sps
-        
+
+        % plot intermediate "trials"
+        scatter(sps(ii),...
+            -ici(sorted_idcs),1:n_trials,30,...
+            type_clrs(2,:),...
+            'marker','.');
+
         % plot reaction times
         scatter(sps(ii),...
             us_delays(sorted_idcs)+reaction_times(sorted_idcs),1:n_trials,5,...
@@ -489,7 +492,7 @@ for mm = 1 : n_mice
                 session_flags;
             prev_counter = counter;
             counter = counter + sum(trial_flags);
-            
+
             % plot session delimeters
             plot(sps(ii),xlim(sps(ii)),...
                 [1,1]*(counter+.5),...
@@ -500,7 +503,7 @@ for mm = 1 : n_mice
                 'color',session_clrs(ss,:),...
                 'linewidth',5);
         end
-        
+
         % plot reference lines
         plot(sps(ii),xlim(sps(ii)),...
             [1,1]*(sum(data.trial.cs.label(mouse_flags & valid_flags)=='CS1')+.5),...
@@ -510,7 +513,7 @@ for mm = 1 : n_mice
         plot(sps(ii),[0,0]+cs_dur,ylim(sps(ii)),'--w');
         plot(sps(ii),[0,0]+cs_dur+trace_dur,ylim(sps(ii)),'--w');
     end
-    
+
     % save figure
     if want2save
         png_file = fullfile(panel_path,[get(gcf,'name'),'.png']);
@@ -522,7 +525,7 @@ end
 
 % iterate through mice
 for mm = 1 : n_mice
-    
+
     % figure initialization
     figure(...
         'windowstyle','docked',...
@@ -530,7 +533,7 @@ for mm = 1 : n_mice
         'name',sprintf('%s_%s_reward_reaction',...
         strrep(mouse_ids{mm},'_',''),experiment_id),...
         'color','w');
-    
+
     % axes initialization
     n_rows = 1;
     n_cols = 2;
@@ -551,7 +554,7 @@ for mm = 1 : n_mice
         'fontsize',12,...
         'layer','top',...
         'tickdir','out');
-    
+
     % figure pseudo title
     annotation(...
         'textbox',[0,.95,1,.05],...
@@ -562,11 +565,11 @@ for mm = 1 : n_mice
         'verticalalignment','bottom',...
         'linestyle','none',...
         'interpreter','none');
-    
+
     % axes titles
     title(sps(1),'DA (\DeltaF/F)');
     title(sps(2),'Lick rate');
-    
+
     % trial selection
     mouse_flags = data.mouse == mouse_ids{mm};
     trial_flags = ...
@@ -576,44 +579,56 @@ for mm = 1 : n_mice
     n_trials = sum(trial_flags);
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
-    
+
     % parse DA data
     da_mat = data.da.reward(trial_flags,:);
-    
+
     % parse lick data
     lick_counts = data.lick.reward(trial_flags,:);
     nan_flags = isnan(lick_counts);
     lick_counts(nan_flags) = 0;
     lick_mat = conv2(1,lickrate_kernel.pdf,lick_counts,'same') / dt;
     lick_mat(nan_flags) = nan;
-    
+
     % parse behavioral data
+    ici = data.ici(trial_flags);
+    cui = data.cui(trial_flags);
+    iri = data.iri(trial_flags);
     reaction_times = data.rt(trial_flags);
     us_delays = data.trial.cs.dur(trial_flags) + trace_dur;
     session_idcs = data.session(trial_flags);
-    
+
     % trial sorting
     sorting_mat = [...
         double(data.trial.cs.label(trial_flags)),...
         data.session(trial_flags),...
-        data.rt(trial_flags)];
-    [~,sorted_idcs] = sortrows(sorting_mat,[1,2,3]);
-    
+        data.rt(trial_flags),...
+        double(data.trial.type(trial_flags)),...
+        data.ici(trial_flags),...
+        data.iri(trial_flags)];
+    [~,sorted_idcs] = sortrows(sorting_mat,[1,2,4,3]);
+
     % plot DA raster
     imagesc(sps(1),da_reward_time,[],...
         da_mat(sorted_idcs,:),quantile(da_mat,[.001,.999],'all')');
     imagesc(sps(2),lick_reward_time,[],...
         lick_mat(sorted_idcs,:),[0,8.5]);
-    
+
     % iterate through rasters
     for ii = 1 : n_sps
-        
+
+        % plot intermediate "trials"
+        scatter(sps(ii),...
+            -iri(sorted_idcs)-reaction_times(sorted_idcs),1:n_trials,30,...
+            type_clrs(2,:),...
+            'marker','.');
+
         % plot reaction times
         scatter(sps(ii),...
             -reaction_times(sorted_idcs),1:n_trials,5,...
             session_clrs(session_idcs(sorted_idcs),:),...
             'marker','.');
-        
+
         % iterate through sessions
         counter = 0;
         for ss = 1 : n_sessions
@@ -625,7 +640,7 @@ for mm = 1 : n_mice
                 reward_flags;
             prev_counter = counter;
             counter = counter + sum(trial_flags);
-            
+
             % plot session delimeters
             plot(sps(ii),xlim(sps(ii)),...
                 [1,1]*(counter+.5),...
@@ -636,13 +651,13 @@ for mm = 1 : n_mice
                 'color',session_clrs(ss,:),...
                 'linewidth',5);
         end
-        
+
         % plot reference lines
         plot(sps(ii),[0,0],ylim(sps(ii)),'--w');
         plot(sps(ii),[0,0]+cs_dur,ylim(sps(ii)),'--w');
         plot(sps(ii),[0,0]+cs_dur+trace_dur,ylim(sps(ii)),'--w');
     end
-    
+
     % save figure
     if want2save
         png_file = fullfile(panel_path,[get(gcf,'name'),'.png']);
@@ -676,13 +691,13 @@ set(sps,...
 % iterate through mice
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
-    
+
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since CS+ onset (s)');
     ylabel(sps(mm),'DA (\DeltaF/F)');
-    
+
     % iterate through sessions
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
@@ -713,7 +728,7 @@ for mm = 1 : n_mice
             'color',session_clrs(ss,:),...
             'linewidth',1);
     end
-    
+
     % plot response windows used to compute DA responses
     yylim = ylim(sps(mm));
     yymax = max(yylim) * 1.1;
@@ -729,7 +744,7 @@ for mm = 1 : n_mice
         'edgecolor','k',...
         'facealpha',1,...
         'linewidth',1.5);
-    
+
     % plot reference lines
     plot(sps(mm),[0,0],ylim(sps(mm)),'--k');
     plot(sps(mm),[1,1]*baseline_period(2),ylim(sps(mm)),'-k',...
@@ -771,13 +786,13 @@ p = gobjects(n_types,1);
 % iterate through mice
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
-    
+
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since CS+ onset (s)');
     ylabel(sps(mm),'DA (\DeltaF/F)');
-    
+
     % iterate through trial types
     for tt = 1 : n_types
         type_flags = data.trial.type == trial_type_labels{tt};
@@ -806,7 +821,7 @@ for mm = 1 : n_mice
             'color',type_clrs(tt,:),...
             'linewidth',1);
     end
-    
+
     % plot response windows used to compute DA responses
     yylim = ylim(sps(mm));
     yymax = max(yylim) * 1.1;
@@ -822,12 +837,12 @@ for mm = 1 : n_mice
         'edgecolor','k',...
         'facealpha',1,...
         'linewidth',1.5);
-    
+
     % plot reference lines
     plot(sps(mm),[0,0],ylim(sps(mm)),'--k');
     plot(sps(mm),[1,1]*baseline_period(2),ylim(sps(mm)),'-k',...
         'linewidth',1);
-    
+
     % legend
     legend(p,trial_type_labels,...
         'location','northeast',...
@@ -866,13 +881,13 @@ set(sps,...
 % iterate through mice
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
-    
+
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'DA (\DeltaF/F)');
-    
+
     % iterate through sessions
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
@@ -903,7 +918,7 @@ for mm = 1 : n_mice
             'color',session_clrs(ss,:),...
             'linewidth',1);
     end
-    
+
     % plot response windows used to compute DA responses
     yylim = ylim(sps(mm));
     yymax = max(yylim) * 1.1;
@@ -919,7 +934,7 @@ for mm = 1 : n_mice
         'edgecolor','k',...
         'facealpha',1,...
         'linewidth',1.5);
-    
+
     % plot reference lines
     plot(sps(mm),[0,0],ylim(sps(mm)),'--k');
     plot(sps(mm),[1,1]*baseline_period(2),ylim(sps(mm)),'-k',...
@@ -938,7 +953,7 @@ end
 figure(...
     'windowstyle','docked',...
     'numbertitle','off',...
-    'name','da_us_type',...
+    'name','poisson_da_reward_type',...
     'color','w');
 
 % axes initialization
@@ -961,13 +976,13 @@ p = gobjects(n_types,1);
 % iterate through mice
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
-    
+
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Time since reward collection (s)');
     ylabel(sps(mm),'DA (\DeltaF/F)');
-    
+
     % iterate through trial types
     for tt = 1 : n_types
         type_flags = data.trial.type == trial_type_labels{tt};
@@ -996,7 +1011,7 @@ for mm = 1 : n_mice
             'color',type_clrs(tt,:),...
             'linewidth',1);
     end
-    
+
     % plot response windows used to compute DA responses
     yylim = ylim(sps(mm));
     yymax = max(yylim) * 1.1;
@@ -1012,12 +1027,12 @@ for mm = 1 : n_mice
         'edgecolor','k',...
         'facealpha',1,...
         'linewidth',1.5);
-    
+
     % plot reference lines
     plot(sps(mm),[0,0],ylim(sps(mm)),'--k');
     plot(sps(mm),[1,1]*baseline_period(2),ylim(sps(mm)),'-k',...
         'linewidth',1);
-    
+
     % legend
     legend(p,trial_type_labels,...
         'location','northeast',...
@@ -1050,13 +1065,13 @@ set(sps,...
 % iterate through mice
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
-    
+
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Trial #');
     ylabel(sps(mm),'DA CS+ response');
-    
+
     % iterate through sessions
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
@@ -1126,13 +1141,13 @@ set(sps,...
 % iterate through mice
 for mm = 1 : n_mice
     mouse_flags = data.mouse == mouse_ids{mm};
-    
+
     % axes labels
     title(sps(mm),sprintf('%s',mouse_ids{mm}),...
         'interpreter','none');
     xlabel(sps(mm),'Trial #');
     ylabel(sps(mm),'DA initial US response');
-    
+
     % iterate through sessions
     n_sessions = max(data.session(mouse_flags));
     session_clrs = cool(n_sessions);
