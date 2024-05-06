@@ -19,7 +19,8 @@ mice_dir = dir(mice_path);
 mice_dir = mice_dir(cellfun(@(x)~contains(x,'.'),{mice_dir.name}));
 
 %% mouse settings
-mouse_ids = {mice_dir.name};
+mouse_ids = {mice_dir.name}';
+mouse_ids = mouse_ids([2,4,6,7,8,1,3,5]);
 n_mice = numel(mouse_ids);
 
 %% acquisition settings
