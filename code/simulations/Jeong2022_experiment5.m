@@ -11,14 +11,14 @@ rng(0);
 
 %% key assumptions
 use_clicks = 0;
-use_cs_offset = 0;
+use_cs_offset = 1;
 
 %% experiment parameters
-pre_cs_delay = 1.5;
+pre_cs_delay = 10;
 cs_dur_set = 8;
 n_cs_durs = numel(cs_dur_set);
 trace_dur = 1;
-iti_delay = 3;
+iti_delay = 10;
 iti_mu = 30;
 iti_max = 90;
 
@@ -107,6 +107,7 @@ end
 %% background reward times
 bg_iri_mu = 6;
 bg_cs_min_delay = 6;
+bg_us_min_delay = 9;
 [~,bg_reward_times] = poissonprocess(1/bg_iri_mu,dur);
 bg_reward_times = unique(dt * round(bg_reward_times / dt));
 cs_onset_times = sort([cs_plus_onset_times;cs_minus_onset_times]);
@@ -118,9 +119,8 @@ bg_reward_flags = ...
 bg_reward_times(~bg_reward_flags) = nan;
 for ii = 1 : n_trials
     violation_flags = ...
-        abs(bg_reward_times - cs_onset_times(ii)) < bg_cs_min_delay | ...
-        (bg_reward_times >= cs_onset_times(ii) & ...
-        bg_reward_times <= cs_offset_times(ii) + trace_dur + iti_delay);
+        bg_reward_times >= cs_onset_times(ii) - bg_cs_min_delay & ...
+        bg_reward_times <= cs_offset_times(ii) + trace_dur + bg_us_min_delay;
     bg_reward_times(violation_flags) = nan;
 end
 bg_reward_times = bg_reward_times(~isnan(bg_reward_times));
@@ -136,7 +136,7 @@ bg_iri_counts = bg_iri_counts ./ nansum(bg_iri_counts);
 bg_iri_pdf = exppdf(bg_iri_edges,bg_iri_mu);
 bg_iri_pdf = bg_iri_pdf ./ nansum(bg_iri_pdf);
 
-%% reward times
+%% paired reward times
 reward_times = click_times + reaction_times;
 reward_times = dt * round(reward_times / dt);
 reward_counts = histcounts(reward_times,state_edges);
@@ -310,6 +310,8 @@ arrayfun(@(ax)set(ax.XAxis,'exponent',0),sps);
 set(sps,axesopt);
 set([sp_da_mu,sp_da,sp_value_mu,sp_value],...
     'xlim',[-pre_cs_delay,max(trial_dur)+iti_delay]);
+set([sp_da_mu,sp_value_mu],...
+    'xcolor','none');
 set(sp_usresponse,...
     'xlim',[1,n_rewards]);
 set(sp_bgiri,...
@@ -398,7 +400,8 @@ for ii = 1 : n_stages
     
     % plot background rewards
     flagged_onset_times = cs_onset_times(trial_flags);
-    bg_reward_trials = sum(bg_reward_times > flagged_onset_times',2);
+    bg_reward_mat = bg_reward_times > flagged_onset_times' - pre_cs_delay;
+    bg_reward_trials = sum(bg_reward_mat,2);
     bg_reward_flags = bg_reward_trials > 0;
     bg_reward_trials = bg_reward_trials(bg_reward_flags);
     bg_reward_trial_times = bg_reward_times(bg_reward_flags) - ...
@@ -407,7 +410,7 @@ for ii = 1 : n_stages
         bg_reward_trial_times,bg_reward_trials+offset,...
         'color','w',...
         'marker','.',...
-        'markersize',5,...
+        'markersize',3,...
         'linestyle','none');
     
     % compute & plot average DA conditioned on CS
