@@ -241,7 +241,7 @@ inhibition_presence = sum(...
 
 rpe_inhibition = inhibition_presence .* -inhibition_magnitude;
 
-inh_kernel = trikernel('width',cs2_dur+trace_dur-dt,'binwidth',dt);
+inh_kernel = trikernel('width',cs1_dur+trace_dur-dt,'binwidth',dt);
 rpe_inhibition = nanconv2(cs2_onset_counts,1,inh_kernel.pdf);
 rpe_inhibition = normalize01(rpe_inhibition,2) * -inhibition_magnitude;
 

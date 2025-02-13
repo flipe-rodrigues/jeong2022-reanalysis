@@ -29,7 +29,6 @@ session_stop_idcs = struct(...
     'HJ_FP_M6',inf,...3,...
     'HJ_FP_M7',inf);...4);
 
-
 %% analysis parameters
 trial_period = [0,max(us_delay)] + [-1,1] * 5;
 baseline_period = [-.5,0];
@@ -1056,6 +1055,12 @@ for mm = 1 : n_mice
     legend(p,trial_type_labels,...
         'location','northwest',...
         'box','off');
+end
+
+% save figure
+if want2save
+    png_file = fullfile(panel_path,[get(gcf,'name'),'.png']);
+    print(gcf,png_file,'-dpng','-r300','-painters');
 end
 
 %% plot CS+ response dynamics
